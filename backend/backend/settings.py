@@ -37,7 +37,27 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'usuarios',
+    'alunos',
+    'turmas',
+    'matriculas',
 ]
+
+
+AUTHENTICATION_BACKENDS = ['usuarios.backends.UsuarioBackend']
+
+# Enviar e-mails reais via Gmail
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'jonathanbastosmarques@gmail.com'
+EMAIL_HOST_PASSWORD = 'hiwu iocc knlp mxzy'  # sua senha de app
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -75,9 +95,9 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'sistema_escolar',         # coloque o nome do seu banco
-        'USER': 'postgres',       # ou outro usuário que você usa no pgAdmin
-        'PASSWORD': '03032003',     # coloque sua senha correta
+        'NAME': 'sistema_escolar',        
+        'USER': 'postgres',       
+        'PASSWORD': '03032003',     
         'HOST': 'localhost',
         'PORT': '5432',
     }
