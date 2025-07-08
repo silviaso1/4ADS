@@ -59,7 +59,7 @@ export default {
   position: fixed;
   left: 0;
   top: 70px;
-  background: white;
+  background: rgb(255, 255, 255);
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
   z-index: 90;
   transition: transform 0.3s ease;

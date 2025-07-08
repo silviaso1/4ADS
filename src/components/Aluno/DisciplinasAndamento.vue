@@ -118,6 +118,7 @@ export default {
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
   margin-bottom: 40px;
   margin-top: 70px;
+  border: 1px solid #5a5959;
 }
 
 .module-header {
@@ -146,12 +147,12 @@ export default {
 }
 
 .module-counter {
-  background: #f8f9fa;
+  background: #ccd6e0;
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 14px;
   font-weight: 500;
-  color: #7f8c8d;
+  color: #000000;
 }
 
 .disciplinas-container {
@@ -163,7 +164,7 @@ export default {
 .disciplina-card {
   background: white;
   border-radius: 12px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid #c9c5c5;
   overflow: hidden;
   transition: all 0.3s ease;
 }

@@ -28,10 +28,11 @@ export default {
 
 <style scoped>
 .cabecalho-professor {
-  background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
   color: white;
   padding: 0 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  height: 70px;
 }
 
 .conteiner-cabecalho {
