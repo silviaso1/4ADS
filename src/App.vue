@@ -1,10 +1,7 @@
-<script setup>
-import Login from './Pages/Professor.vue'
-</script>
-
 <template>
-  
-    
-  <Login  />
+  <router-view />
 </template>
 
+<script setup>
+// não precisa importar nenhuma página aqui
+</script>
