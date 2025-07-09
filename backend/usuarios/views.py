@@ -7,31 +7,22 @@ from .models import Usuario
 from .serializers import UsuarioSerializer
 import secrets
 
-# 🔐 Nova permissão baseada em token manual
-class IsAdminWithToken(permissions.BasePermission):
-    """
-    Permite apenas se o token for válido e o usuário for admin.
-    """
-    def has_permission(self, request, view):
-        token = request.headers.get('Authorization')
-        if not token:
-            return False
-        user = Usuario.objects.filter(token=token).first()
-        if user and user.tipo == 'admin':
-            request.user = user  # Define o user manualmente
-            return True
-        return False
 
-# 🔧 Cadastro de usuários (protegido com IsAdminWithToken)
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
-    permission_classes = [IsAdminWithToken]
 
     def perform_create(self, serializer):
-        senha = "4ADS123"  # senha fixa
+        tipo = serializer.validated_data.get('tipo')
+
+        if tipo == 'professor':
+            senha = "AV24ADS20255"
+        else:
+            senha = "4ADS123"
+
         usuario = serializer.save(senha=senha)
-        # Enviar email simulado
+
+    
         send_mail(
             subject="Cadastro no sistema",
             message=f"Bem-vindo!\n\nLogin: {usuario.email}\nSenha: {senha}",
@@ -40,20 +31,18 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             fail_silently=False,
         )
 
-# 🔑 Login com geração de token
+
 @api_view(['POST'])
 def login_view(request):
     email = request.data.get('email')
     senha = request.data.get('senha')
+
     user = Usuario.objects.filter(email=email, senha=senha).first()
     if user:
-        # Gera e salva um token aleatório
-        token = secrets.token_hex(20)
-        user.token = token
-        user.save()
         return Response({
             "mensagem": "Login bem-sucedido",
-            "token": token,
-            "tipo": user.tipo
+            "tipo": user.tipo,
+            "nome": user.nome
         }, status=200)
+    
     return Response({"mensagem": "Credenciais inválidas"}, status=401)
