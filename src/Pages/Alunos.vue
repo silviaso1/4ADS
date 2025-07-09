@@ -36,12 +36,7 @@
       </main>
     </div>
     
-    <ModalMatricula
-      v-if="mostrarModalMatricula"
-      :disciplina="disciplinaSelecionada"
-      @confirmar="confirmarMatricula"
-      @cancelar="fecharModalMatricula"
-    />
+ 
   </div>
 </template>
 
@@ -52,8 +47,6 @@ import DisciplinasAndamento from '../components/Aluno/DisciplinasAndamento.vue'
 import DisciplinasConcluidas from '../components/Aluno/DisciplinasConcluidas.vue'
 import MatriculaDisciplinas from '../components/Aluno/MatriculaDisciplinas.vue'
 
-import ModalMatricula from '../components/Aluno/ModalMatricula.vue'
-
 export default {
   name: 'PortalAluno',
   components: {
@@ -62,7 +55,6 @@ export default {
     DisciplinasAndamento,
     DisciplinasConcluidas,
     MatriculaDisciplinas,
-    ModalMatricula
   },
   data() {
     return {

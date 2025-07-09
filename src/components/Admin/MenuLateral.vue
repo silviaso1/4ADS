@@ -34,7 +34,6 @@ export default {
         { aba: 'alunos', icone: 'fas fa-users', texto: 'Alunos' },
         { aba: 'professores', icone: 'fas fa-chalkboard-teacher', texto: 'Professores' },
         { aba: 'turmas', icone: 'fas fa-door-open', texto: 'Turmas' },
-        { aba: 'matriculas', icone: 'fas fa-calendar-alt', texto: 'Matrículas' }
       ]
     }
   }

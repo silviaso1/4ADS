@@ -13,7 +13,7 @@ class Usuario(models.Model):
     email = models.EmailField(unique=True)
     senha = models.CharField(max_length=255)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
-    token = models.CharField(max_length=255, blank=True, null=True)  # <--- Adiciona isso aqui
+    token = models.CharField(max_length=255, blank=True, null=True)  
 
     class Meta:
         managed = False

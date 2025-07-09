@@ -31,6 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',  # <<< Adicionado aqui em primeiro lugar
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,7 +46,6 @@ INSTALLED_APPS = [
     'matriculas',
 ]
 
-
 AUTHENTICATION_BACKENDS = ['usuarios.backends.UsuarioBackend']
 
 # Enviar e-mails reais via Gmail
@@ -57,9 +58,8 @@ EMAIL_HOST_PASSWORD = 'hiwu iocc knlp mxzy'  # sua senha de app
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
-
-
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # <<< Deve ser o primeiro da lista
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -95,14 +95,13 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'sistema_escolar',        
-        'USER': 'postgres',       
-        'PASSWORD': '03032003',     
+        'NAME': 'sistema_escolar',
+        'USER': 'postgres',
+        'PASSWORD': 'admin',
         'HOST': 'localhost',
         'PORT': '5432',
     }
 }
-
 
 
 # Password validation
@@ -145,3 +144,13 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Configuração CORS - permita o domínio do frontend
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
+
+# Se quiser liberar qualquer origem (não recomendado em produção)
+# CORS_ALLOW_ALL_ORIGINS = True

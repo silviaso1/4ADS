@@ -35,7 +35,7 @@
           <label for="professorTurma">Professor:</label>
           <select
             id="professorTurma"
-            v-model="turmaLocal.professorId"
+            v-model="turmaLocal.professor_id"
           >
             <option value="">Selecione um professor</option>
             <option 
@@ -80,11 +80,11 @@
       </div>
       
       <div class="modal__rodape">
-        <button class="botao-secundario" @click="fecharModal">
+        <button class="botao-secundario" @click="fecharModal" :disabled="loading">
           Cancelar
         </button>
-        <button class="botao-primario" @click="salvar">
-          {{ turma ? 'Salvar Alterações' : 'Cadastrar Turma' }}
+        <button class="botao-primario" @click="salvar" :disabled="loading">
+          {{ loading ? (turma ? 'Salvando...' : 'Cadastrando...') : (turma ? 'Salvar Alterações' : 'Cadastrar Turma') }}
         </button>
       </div>
     </div>
@@ -92,6 +92,8 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'ModalTurma',
   props: {
@@ -106,29 +108,74 @@ export default {
   },
   data() {
     return {
-      turmaLocal: this.turma 
-        ? { ...this.turma } 
-        : { 
-            codigo: '', 
-            nome: '', 
-            professorId: '', 
-            periodo: '', 
-            horario: '', 
-            sala: '' 
-          }
+      turmaLocal: this.turma
+        ? { ...this.turma }
+        : {
+            codigo: '',
+            nome: '',
+            professor_id: '',
+            periodo: '',
+            horario: '',
+            sala: ''
+          },
+      loading: false,
+      errorMsg: ''
     }
   },
   methods: {
     fecharModal() {
       this.$emit('fechar')
     },
-    salvar() {
-      if (!this.turmaLocal.nome || !this.turmaLocal.codigo || !this.turmaLocal.periodo) {
-        alert('Preencha todos os campos obrigatórios')
+    async salvar() {
+      if (!this.turmaLocal.nome.trim() || !this.turmaLocal.codigo.trim() || !this.turmaLocal.periodo.trim()) {
+        alert('Preencha todos os campos obrigatórios: Nome, Código e Período.')
         return
       }
-      this.$emit('salvar', this.turmaLocal)
-      this.fecharModal()
+
+      this.loading = true
+      this.errorMsg = ''
+
+      try {
+        const token = '039158ff2f7056df4a2d999c925afb79ee3cc8e0'
+        const urlBase = 'http://localhost:8000/api/turmas/'
+
+        const dados = {
+          codigo: this.turmaLocal.codigo.trim(),
+          nome: this.turmaLocal.nome.trim(),
+          professor_id: this.turmaLocal.professor_id || null,
+          periodo: this.turmaLocal.periodo.trim(),
+          horario: this.turmaLocal.horario.trim(),
+          sala: this.turmaLocal.sala.trim()
+        }
+
+        let response
+
+        if (this.turma && this.turma.id) {
+          response = await axios.put(`${urlBase}${this.turma.id}/`, dados, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          alert('Turma atualizada com sucesso!')
+        } else {
+          response = await axios.post(urlBase, dados, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          alert('Turma cadastrada com sucesso!')
+        }
+
+        this.$emit('salvar', response.data)
+        this.fecharModal()
+      } catch (error) {
+        console.error('Erro ao salvar turma:', error)
+        if (error.response && error.response.data) {
+          this.errorMsg = error.response.data
+          alert(JSON.stringify(this.errorMsg))
+        } else {
+          this.errorMsg = 'Erro ao salvar turma.'
+          alert(this.errorMsg)
+        }
+      } finally {
+        this.loading = false
+      }
     }
   }
 }
@@ -153,7 +200,7 @@ export default {
   background-color: white;
   border-radius: 0.75rem;
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
@@ -221,19 +268,22 @@ export default {
   color: #4a5568;
 }
 
-.campo-formulario input {
+.campo-formulario input,
+.campo-formulario select {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   font-size: 0.9rem;
+  background-color: white;
   transition: all 0.2s;
 }
 
-.campo-formulario input:focus {
+.campo-formulario input:focus,
+.campo-formulario select:focus {
   outline: none;
-  border-color: #3490dc;
-  box-shadow: 0 0 0 3px rgba(52, 144, 220, 0.1);
+  border-color: #38b2ac;
+  box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.1);
 }
 
 .modal__rodape {
@@ -243,6 +293,7 @@ export default {
   justify-content: flex-end;
   gap: 0.75rem;
 }
+
 .modal--grande {
   max-width: 600px;
 }
@@ -254,25 +305,30 @@ export default {
 .botao-primario {
   background-color: #38b2ac;
   border-color: #38b2ac;
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 .botao-primario:hover {
   background-color: #2c7a7b;
 }
 
-select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
+.botao-secundario {
+  background-color: #e2e8f0;
+  border: none;
+  color: #4a5568;
+  padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
-  font-size: 0.9rem;
-  background-color: white;
-  transition: all 0.2s;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
 }
 
-select:focus {
-  outline: none;
-  border-color: #38b2ac;
-  box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.1);
+.botao-secundario:hover {
+  background-color: #cbd5e0;
 }
 </style>

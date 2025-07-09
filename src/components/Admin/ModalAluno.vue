@@ -12,32 +12,35 @@
       
       <div class="modal__corpo">
         <div class="campo-formulario">
-          <label for="nomeAluno">Nome Completo:</label>
+          <label for="idAluno">ID:</label>
           <input
             type="text"
-            id="nomeAluno"
-            v-model="alunoLocal.nome"
-            placeholder="Digite o nome completo"
+            id="idAluno"
+            v-model="alunoLocal.id"
+            placeholder="Ex: 2023001"
+            required
           >
         </div>
-        
+
         <div class="campo-formulario">
           <label for="matriculaAluno">Matrícula:</label>
           <input
             type="text"
             id="matriculaAluno"
-            v-model="alunoLocal.id"
-            placeholder="Número de matrícula"
+            v-model="alunoLocal.matricula"
+            placeholder="Ex: 002200202"
+            required
           >
         </div>
-        
+
         <div class="campo-formulario">
           <label for="periodoAluno">Período de Ingresso:</label>
           <input
             type="text"
             id="periodoAluno"
-            v-model="alunoLocal.periodo"
+            v-model="alunoLocal.periodo_ingresso"
             placeholder="Ex: 2024.1"
+            required
           >
         </div>
       </div>
@@ -46,8 +49,8 @@
         <button class="botao-secundario" @click="fecharModal">
           Cancelar
         </button>
-        <button class="botao-primario" @click="salvar">
-          {{ aluno ? 'Salvar Alterações' : 'Cadastrar Aluno' }}
+        <button class="botao-primario" @click="salvar" :disabled="loading">
+          {{ aluno ? (loading ? 'Salvando...' : 'Salvar Alterações') : (loading ? 'Cadastrando...' : 'Cadastrar Aluno') }}
         </button>
       </div>
     </div>
@@ -55,6 +58,8 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'ModalAluno',
   props: {
@@ -65,20 +70,78 @@ export default {
   },
   data() {
     return {
-      alunoLocal: this.aluno ? { ...this.aluno } : { id: '', nome: '', periodo: '' }
+      alunoLocal: {
+        id: this.aluno ? this.aluno.id : '',
+        matricula: this.aluno ? this.aluno.matricula : '',
+        periodo_ingresso: this.aluno ? this.aluno.periodo_ingresso : ''
+      },
+      loading: false,
+      errorMsg: ''
     }
   },
   methods: {
     fecharModal() {
       this.$emit('fechar')
     },
-    salvar() {
-      if (!this.alunoLocal.nome || !this.alunoLocal.id || !this.alunoLocal.periodo) {
-        alert('Preencha todos os campos obrigatórios')
+
+    async salvar() {
+      if (
+        !this.alunoLocal.id.trim() ||
+        !this.alunoLocal.matricula.trim() ||
+        !this.alunoLocal.periodo_ingresso.trim()
+      ) {
+        alert('Preencha todos os campos obrigatórios, inclusive o ID')
         return
       }
-      this.$emit('salvar', this.alunoLocal)
-      this.fecharModal()
+
+      this.loading = true
+      this.errorMsg = ''
+
+      try {
+        const token = '039158ff2f7056df4a2d999c925afb79ee3cc8e0'
+        const urlBase = 'http://localhost:8000/api/alunos/'
+
+        const dados = {
+          id: this.alunoLocal.id.trim(),
+          matricula: this.alunoLocal.matricula.trim(),
+          periodo_ingresso: this.alunoLocal.periodo_ingresso.trim()
+        }
+
+        let response
+
+        if (this.aluno) {
+          // edição (PUT /api/alunos/:id)
+          response = await axios.put(`${urlBase}${this.alunoLocal.id}`, dados, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
+          alert('Aluno atualizado com sucesso!')
+        } else {
+          // criação (POST /api/alunos/)
+          response = await axios.post(urlBase, dados, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
+          alert('Aluno cadastrado com sucesso!')
+        }
+
+        this.$emit('salvar', response.data)
+        this.fecharModal()
+
+      } catch (error) {
+        console.error('Erro ao salvar aluno:', error)
+        if (error.response) {
+          this.errorMsg = error.response.data || 'Erro ao salvar aluno.'
+          alert(JSON.stringify(this.errorMsg))
+        } else {
+          this.errorMsg = 'Erro ao salvar aluno.'
+          alert(this.errorMsg)
+        }
+      } finally {
+        this.loading = false
+      }
     }
   }
 }
@@ -192,5 +255,35 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+}
+
+.botao-primario {
+  background-color: #3490dc;
+  border: none;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.botao-primario:hover {
+  background-color: #2779bd;
+}
+
+.botao-secundario {
+  background-color: #e2e8f0;
+  border: none;
+  color: #4a5568;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.botao-secundario:hover {
+  background-color: #cbd5e0;
 }
 </style>

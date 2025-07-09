@@ -20,6 +20,8 @@
       </div>
       
       <form @submit.prevent="handleLogin" class="login-form">
+        <div v-if="errorMsg" class="error-message">{{ errorMsg }}</div>
+
         <div class="form-group">
           <label for="username">Usuário</label>
           <div class="input-with-icon">
@@ -75,6 +77,8 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'LoginPage',
   data() {
@@ -88,26 +92,67 @@ export default {
         { value: 'student', label: 'Aluno', icon: 'fas fa-user-graduate' },
         { value: 'teacher', label: 'Professor', icon: 'fas fa-chalkboard-teacher' },
         { value: 'admin', label: 'Administrador', icon: 'fas fa-user-cog' }
-      ]
+      ],
+      errorMsg: ''
     }
   },
   methods: {
     selectUserType(type) {
       this.selectedUserType = type;
+      this.errorMsg = ''
     },
     togglePasswordVisibility() {
       const passwordInput = document.getElementById('password');
       this.showPassword = !this.showPassword;
       passwordInput.type = this.showPassword ? 'text' : 'password';
     },
-    handleLogin() {
-      console.log('Tentativa de login:', {
-        username: this.username,
-        password: this.password,
-        userType: this.selectedUserType,
-        rememberMe: this.rememberMe
-      });
-      // this.$router.push('/dashboard');
+    async handleLogin() {
+      this.errorMsg = ''
+      if (!this.username || !this.password) {
+        this.errorMsg = 'Preencha usuário e senha.'
+        return
+      }
+      try {
+        const response = await axios.post('http://localhost:8000/api/usuarios/login/', {
+          email: this.username,
+          senha: this.password
+        })
+
+        // Resposta esperada: { mensagem, token, tipo }
+        const { token, tipo } = response.data
+
+        // Mapeia o selectedUserType para o nome usado no backend
+        const tipoMap = {
+          student: 'aluno',
+          teacher: 'professor',
+          admin: 'admin'
+        }
+
+        if (tipo === tipoMap[this.selectedUserType]) {
+          // Login válido
+          if (this.rememberMe) {
+            localStorage.setItem('token', token)
+            localStorage.setItem('userType', tipo)
+          } else {
+            sessionStorage.setItem('token', token)
+            sessionStorage.setItem('userType', tipo)
+          }
+
+          // Redireciona para rota baseada no tipo
+          const rotaMap = {
+            aluno: '/alunos',
+            professor: '/professor',
+            admin: '/admin'
+          }
+          this.$router.push(rotaMap[tipo])
+
+        } else {
+          this.errorMsg = 'Tipo de usuário incorreto para esse login.'
+        }
+      } catch (error) {
+        this.errorMsg = 'Usuário ou senha inválidos.'
+        console.error('Erro no login:', error)
+      }
     }
   }
 }
@@ -148,15 +193,6 @@ export default {
 .login-header {
   text-align: center;
   margin-bottom: 30px;
-}
-
-.login-header .logo {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 15px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #e0e0e0;
 }
 
 .login-header h1 {
@@ -347,85 +383,11 @@ export default {
   transform: translateY(0);
 }
 
-.login-footer {
-  text-align: center;
-  margin-top: 30px;
-  color: #7f8c8d;
-  font-size: 14px;
-}
-
-.login-footer a {
-  color: #3498db;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.login-footer a:hover {
-  text-decoration: underline;
-}
-
-.social-login {
-  margin-top: 20px;
-}
-
-.social-login p {
+.error-message {
+  color: #e3342f;
+  font-weight: 600;
   margin-bottom: 15px;
-  position: relative;
-}
-
-.social-login p::before,
-.social-login p::after {
-  content: "";
-  position: absolute;
-  height: 1px;
-  width: 30%;
-  background-color: #e0e0e0;
-  top: 50%;
-}
-
-.social-login p::before {
-  left: 0;
-}
-
-.social-login p::after {
-  right: 0;
-}
-
-.social-icons {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-}
-
-.social-btn {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.social-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.social-btn.google {
-  background-color: #fff;
-  color: #db4437;
-  border: 1px solid #e0e0e0;
-}
-
-.social-btn.microsoft {
-  background-color: #fff;
-  color: #0078d7;
-  border: 1px solid #e0e0e0;
+  text-align: center;
 }
 
 .login-decoration {

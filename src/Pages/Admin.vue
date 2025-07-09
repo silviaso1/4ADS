@@ -34,13 +34,7 @@
           @confirmar-exclusao="confirmarExclusao"
         />
         
-        <!-- Controle de Matrículas -->
-        <ControleMatriculas
-  v-model:matriculasAbertas="estadoMatriculas"
-  :periodo-matriculas="periodoMatriculas"
-  @salvar-periodo="salvarPeriodoMatriculas"
-  @alternar-status="lidarComAlternanciaStatus"
-/>
+       
       </main>
     </div>
     
@@ -77,12 +71,13 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 import CabecalhoAdmin from '../components/Admin/CabecalhoAdmin.vue'
 import MenuLateral from '../components/Admin/MenuLateral.vue'
 import GerenciamentoAlunos from '../components/Admin/GerenciamentoAlunos.vue'
 import GerenciamentoProfessores from '../components/Admin/GerenciamentoProfessores.vue'
 import GerenciamentoTurmas from '../components/Admin/GerenciamentoTurmas.vue'
-import ControleMatriculas from '../components/Admin/ControleMatriculas.vue'
 import ModalAluno from '../components/Admin/ModalAluno.vue'
 import ModalProfessor from '../components/Admin/ModalProfessor.vue'
 import ModalTurma from '../components/Admin/ModalTurma.vue'
@@ -96,7 +91,6 @@ export default {
     GerenciamentoAlunos,
     GerenciamentoProfessores,
     GerenciamentoTurmas,
-    ControleMatriculas,
     ModalAluno,
     ModalProfessor,
     ModalTurma,
@@ -105,15 +99,10 @@ export default {
   data() {
     return {
       abaAtiva: 'alunos',
-      matriculasAbertas: false,
-      periodoMatriculas: {
-        inicio: '2023-11-01',
-        fim: '2023-11-15'
-      },
       alunos: [
-        { id: '2023001', nome: 'Ana Clara Souza', periodo: '2023.1' },
-        { id: '2023002', nome: 'Bruno Oliveira', periodo: '2023.1' },
-        { id: '2023003', nome: 'Carla Mendes', periodo: '2023.2' }
+        { id: '2023001', matricula: '2023001', periodo_ingresso: '2023.1', nome: 'Ana Clara Souza' },
+        { id: '2023002', matricula: '2023002', periodo_ingresso: '2023.1', nome: 'Bruno Oliveira' },
+        { id: '2023003', matricula: '2023003', periodo_ingresso: '2023.2', nome: 'Carla Mendes' }
       ],
       professores: [
         { id: 't001', nome: 'Carlos Silva', email: 'carlos.silva@escola.com', senha: 'senha123' },
@@ -121,9 +110,10 @@ export default {
       ],
       turmas: [
         { 
+          id: 1,
           codigo: 'MAT-2023-1A', 
           nome: 'Matemática Avançada', 
-          professorId: 't001',
+          professor_id: 't001',
           periodo: '2023.1',
           horario: 'Segunda e Quarta, 14:00-16:00',
           sala: 'Sala 203'
@@ -154,8 +144,37 @@ export default {
     fecharModalAluno() {
       this.mostrarModalAluno = false
     },
-    salvarAluno(aluno) {
-      // Lógica para salvar aluno
+    async salvarAluno(aluno) {
+      try {
+        const token = '039158ff2f7056df4a2d999c925afb79ee3cc8e0'
+        const url = 'http://localhost:8000/api/alunos/'
+
+        if (aluno.id && this.alunos.some(a => a.id === aluno.id)) {
+          // Atualizar aluno (PUT)
+          await axios.put(`${url}${aluno.id}`, aluno, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          // Atualiza lista local
+          const index = this.alunos.findIndex(a => a.id === aluno.id)
+          if (index >= 0) this.alunos.splice(index, 1, aluno)
+
+          alert('Aluno atualizado com sucesso!')
+        } else {
+          // Criar novo aluno (POST)
+          await axios.post(url, aluno, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          this.alunos.push(aluno)
+          alert('Aluno cadastrado com sucesso!')
+        }
+
+        this.mostrarModalAluno = false
+      } catch (error) {
+        console.error('Erro ao salvar aluno:', error)
+        alert('Falha ao salvar aluno. Veja o console para mais detalhes.')
+      }
     },
     abrirModalProfessor(professor) {
       this.professorEditando = professor ? { ...professor } : null
@@ -165,17 +184,36 @@ export default {
       this.mostrarModalProfessor = false
     },
     salvarProfessor(professor) {
-      // Lógica para salvar professor
+      // Implemente lógica para salvar professor
     },
     abrirModalTurma(turma) {
-      this.turmaEditando = turma ? { ...turma } : null
+      this.turmaEditando = turma ? { ...turma } : {
+        codigo: '',
+        nome: '',
+        professor_id: '',
+        periodo: '',
+        horario: '',
+        sala: ''
+      }
       this.mostrarModalTurma = true
     },
     fecharModalTurma() {
       this.mostrarModalTurma = false
     },
     salvarTurma(turma) {
-      // Lógica para salvar turma
+      if (turma.id) {
+        // Editar turma existente
+        const index = this.turmas.findIndex(t => t.id === turma.id)
+        if (index >= 0) {
+          this.turmas.splice(index, 1, turma)
+        }
+      } else {
+        // Criar nova turma - gerar id simples para exemplo
+        turma.id = this.turmas.length + 1
+        this.turmas.push(turma)
+      }
+      this.mostrarModalTurma = false
+      alert('Turma salva com sucesso!')
     },
     confirmarExclusao(tipo, id) {
       this.tipoExclusao = tipo
@@ -186,22 +224,18 @@ export default {
       this.mostrarModalConfirmacao = false
     },
     executarExclusao() {
-      // Lógica para exclusão
+      // Implementar lógica de exclusão conforme tipo e id
       this.mostrarModalConfirmacao = false
     },
-    salvarPeriodoMatriculas(periodo) {
-      this.periodoMatriculas = periodo
-      // Lógica para salvar no backend
-    },
-    alternarStatusMatriculas() {
-      this.matriculasAbertas = !this.matriculasAbertas
-      // Lógica para atualizar no backend
-    }
+   
+ 
   }
 }
 </script>
 
 <style lang="scss">
+
+
 .portal-admin {
   display: flex;
   flex-direction: column;
@@ -223,155 +257,5 @@ export default {
   transition: all 0.3s ease;
 }
 
-/* Estilos para cards */
-.card {
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  
-  &-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #edf2f7;
-    
-    h2 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #2d3748;
-    }
-  }
-}
 
-/* Botões */
-.botao {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  transition: all 0.2s;
-  cursor: pointer;
-  font-size: 0.875rem;
-  
-  &-primario {
-    background-color: #3490dc;
-    color: white;
-    border: 1px solid #3490dc;
-    
-    &:hover {
-      background-color: #2779bd;
-    }
-  }
-  
-  &-secundario {
-    background-color: white;
-    color: #4a5568;
-    border: 1px solid #e2e8f0;
-    
-    &:hover {
-      background-color: #f7fafc;
-    }
-  }
-  
-  &-perigo {
-    background-color: #e3342f;
-    color: white;
-    border: 1px solid #e3342f;
-    
-    &:hover {
-      background-color: #cc1f1a;
-    }
-  }
-  
-  &-icone {
-    padding: 0.5rem;
-    border-radius: 50%;
-    width: 2rem;
-    height: 2rem;
-  }
-}
-
-/* Tabelas */
-.tabela {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: white;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  
-  thead {
-    background-color: #f7fafc;
-    color: #4a5568;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  
-  th {
-    padding: 1rem;
-    text-align: left;
-    font-weight: 600;
-  }
-  
-  td {
-    padding: 1rem;
-    border-top: 1px solid #edf2f7;
-    color: #4a5568;
-  }
-  
-  tr:hover {
-    background-color: #f8fafc;
-  }
-}
-
-/* Formulários */
-.campo-formulario {
-  margin-bottom: 1.25rem;
-  
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #4a5568;
-  }
-  
-  input, select {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    background-color: white;
-    transition: all 0.2s;
-    
-    &:focus {
-      outline: none;
-      border-color: #3490dc;
-      box-shadow: 0 0 0 3px rgba(52, 144, 220, 0.1);
-    }
-  }
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-  .conteiner-principal {
-    flex-direction: column;
-  }
-  
-  .conteudo-principal {
-    padding: 1rem;
-  }
-  
-  .tabela {
-    display: block;
-    overflow-x: auto;
-  }
-}
 </style>

@@ -23,15 +23,7 @@
         <span>Disciplinas Concluídas</span>
       </button>
       
-      <button 
-        v-if="periodoMatriculaAberto"
-        class="item-menu"
-        :class="{ 'ativo': selecaoAtual === 'matricula' }"
-        @click="$emit('mudar-selecao', 'matricula')"
-      >
-        <i class="fas fa-pencil-alt icone-menu"></i>
-        <span>Nova Matrícula</span>
-      </button>
+     
       
      
     </nav>
@@ -44,10 +36,6 @@ export default {
   props: {
     selecaoAtual: String,
     mostrarMobile: Boolean,
-    periodoMatriculaAberto: {
-      type: Boolean,
-      default: true
-    }
   }
 }
 </script>

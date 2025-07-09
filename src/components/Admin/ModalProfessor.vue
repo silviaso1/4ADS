@@ -55,6 +55,8 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'ModalProfessor',
   props: {
@@ -74,19 +76,39 @@ export default {
     fecharModal() {
       this.$emit('fechar')
     },
-    salvar() {
+    async salvar() {
       if (!this.professorLocal.nome || !this.professorLocal.email) {
         alert('Preencha todos os campos obrigatórios')
         return
       }
-      
+
       if (!this.professor && !this.professorLocal.senha) {
         alert('A senha é obrigatória para novos professores')
         return
       }
-      
-      this.$emit('salvar', this.professorLocal)
-      this.fecharModal()
+
+      const novoProfessor = {
+        nome: this.professorLocal.nome,
+        email: this.professorLocal.email,
+        senha: this.professorLocal.senha,
+        tipo: 'professor'
+      }
+
+      try {
+        await axios.post('http://localhost:8000/api/usuarios/login/', novoProfessor, {
+          headers: {
+            Authorization: 'dd11734604075d416eda15ba86f7b3ea7848ae03',
+            'Content-Type': 'application/json'
+          }
+        })
+
+        alert('Professor cadastrado com sucesso!')
+        this.$emit('salvar', novoProfessor)
+        this.fecharModal()
+      } catch (erro) {
+        console.error('Erro ao cadastrar professor:', erro)
+        alert('Erro ao cadastrar professor. Verifique os dados ou permissões.')
+      }
     }
   }
 }
@@ -140,7 +162,7 @@ export default {
 .modal__titulo {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #2d3748;
+  color: #9f7aea;
   margin: 0;
 }
 
@@ -201,16 +223,32 @@ export default {
   justify-content: flex-end;
   gap: 0.75rem;
 }
-.modal__titulo {
-  color: #9f7aea;
-}
 
 .botao-primario {
   background-color: #9f7aea;
-  border-color: #9f7aea;
+  border: none;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: 0.3s;
 }
 
 .botao-primario:hover {
   background-color: #805ad5;
+}
+
+.botao-secundario {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  color: #555;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.botao-secundario:hover {
+  background-color: #f5f5f5;
 }
 </style>
