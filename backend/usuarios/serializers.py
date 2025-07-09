@@ -8,7 +8,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = ['id', 'nome', 'email', 'senha', 'tipo', 'token']
         extra_kwargs = {
-            'token': {'read_only': True},
             'senha': {'write_only': True, 'required': False},
         }
 
