@@ -15,7 +15,7 @@
     <div class="grade-turmas">
       <div 
         v-for="turma in turmasFiltradas" 
-        :key="turma.codigo" 
+        :key="turma.id" 
         class="cartao-turma"
         @click="$emit('selecionar-turma', turma)"
       >
@@ -25,15 +25,18 @@
           <p class="horario-turma">
             <i class="fas fa-calendar-day"></i> {{ turma.horario }}
           </p>
+          <p class="sala-turma">
+            <i class="fas fa-door-open"></i> {{ turma.sala }}
+          </p>
         </div>
         <div class="estatisticas-turma">
           <div class="item-estatistica">
             <i class="fas fa-users"></i>
-            <span>{{ turma.alunos.length }} alunos</span>
+            <span>{{ (turma.alunos && turma.alunos.length) || 0 }} alunos</span>
           </div>
           <div class="item-estatistica">
             <i class="fas fa-tasks"></i>
-            <span>{{ turma.atividades }} atividades</span>
+            <span>{{ turma.atividades || 0 }} atividades</span>
           </div>
         </div>
       </div>
@@ -57,15 +60,19 @@ export default {
   },
   computed: {
     turmasFiltradas() {
+      const termo = this.termoPesquisa.toLowerCase()
       return this.turmas.filter(turma => {
-        return turma.nome.toLowerCase().includes(this.termoPesquisa.toLowerCase()) ||
-               turma.codigo.toLowerCase().includes(this.termoPesquisa.toLowerCase())
+        // Evita erro se campos nulos
+        const nome = turma.nome ? turma.nome.toLowerCase() : ''
+        const codigo = turma.codigo ? turma.codigo.toLowerCase() : ''
+        return nome.includes(termo) || codigo.includes(termo)
       })
     }
   },
   emits: ['selecionar-turma']
 }
 </script>
+
 
 <style scoped>
 .lista-turmas {
@@ -141,7 +148,9 @@ export default {
   margin-bottom: 8px;
 }
 
-.horario-turma {
+.horario-turma,
+.sala-turma,
+.periodo-turma {
   color: #555;
   font-size: 13px;
   display: flex;
@@ -149,7 +158,9 @@ export default {
   gap: 5px;
 }
 
-.horario-turma i {
+.horario-turma i,
+.sala-turma i,
+.periodo-turma i {
   color: #3498db;
 }
 

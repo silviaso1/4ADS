@@ -33,8 +33,6 @@
           @abrir-modal-turma="abrirModalTurma"
           @confirmar-exclusao="confirmarExclusao"
         />
-        
-       
       </main>
     </div>
     
@@ -104,10 +102,7 @@ export default {
         { id: '2023002', matricula: '2023002', periodo_ingresso: '2023.1', nome: 'Bruno Oliveira' },
         { id: '2023003', matricula: '2023003', periodo_ingresso: '2023.2', nome: 'Carla Mendes' }
       ],
-      professores: [
-        { id: 't001', nome: 'Carlos Silva', email: 'carlos.silva@escola.com', senha: 'senha123' },
-        { id: 't002', nome: 'Mariana Oliveira', email: 'mariana.oliveira@escola.com', senha: 'senha123' }
-      ],
+      professores: [], // Vazio, será carregado via API
       turmas: [
         { 
           id: 1,
@@ -227,15 +222,35 @@ export default {
       // Implementar lógica de exclusão conforme tipo e id
       this.mostrarModalConfirmacao = false
     },
-   
- 
+
+    async carregarProfessores() {
+      try {
+        const token = '039158ff2f7056df4a2d999c925afb79ee3cc8e0' // ou sem token se não usar
+        const url = 'http://localhost:8000/api/usuarios/'
+
+        const response = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        // Filtra só os professores
+        this.professores = response.data.filter(usuario => usuario.tipo === 'professor')
+          .map(prof => ({
+            id: prof.id,
+            nome: prof.nome,
+            email: prof.email
+          }))
+      } catch (error) {
+        console.error('Erro ao carregar professores:', error)
+        alert('Erro ao carregar lista de professores')
+      }
+    }
+  },
+  mounted() {
+    this.carregarProfessores()
   }
 }
 </script>
 
 <style lang="scss">
-
-
 .portal-admin {
   display: flex;
   flex-direction: column;
@@ -256,6 +271,4 @@ export default {
   background-color: #f8fafc;
   transition: all 0.3s ease;
 }
-
-
 </style>

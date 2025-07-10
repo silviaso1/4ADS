@@ -1,7 +1,7 @@
 <template>
   <div class="gerenciamento">
     <div class="gerenciamento__cabecalho">
-      <button class="botao-primario" @click="$emit('abrir-modal-aluno', null)">
+      <button class="botao-primario" @click="abrirModalAluno(null)">
         <i class="fas fa-plus"></i>
         <span>Novo Aluno</span>
       </button>
@@ -24,56 +24,28 @@
       <table class="tabela">
         <thead>
           <tr>
-            <th class="coluna-id">
-              <span>Matrícula</span>
-              <i class="fas fa-sort sort-icon"></i>
-            </th>
-            <th class="coluna-nome">
-              <span>Nome Completo</span>
-              <i class="fas fa-sort sort-icon"></i>
-            </th>
-            <th class="coluna-periodo">
-              <span>Período</span>
-              <i class="fas fa-sort sort-icon"></i>
-            </th>
+            <th class="coluna-id">Matrícula</th>
+            <th class="coluna-nome">Nome Completo</th>
+            <th class="coluna-email">Email</th>
             <th class="coluna-acoes">Ações</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="aluno in alunosFiltrados" :key="aluno.id">
-            <td class="coluna-id">
-              <span class="badge-matricula">{{ aluno.id }}</span>
-            </td>
-            <td class="coluna-nome">
-              <div class="aluno-info">
-                <div class="avatar-placeholder">
-                  {{ aluno.nome.charAt(0).toUpperCase() }}
-                </div>
-                <span>{{ aluno.nome }}</span>
-              </div>
-            </td>
-            <td class="coluna-periodo">
-              <span class="periodo-badge">{{ aluno.periodo }}</span>
-            </td>
+            <td class="coluna-id">{{ aluno.id }}</td>
+            <td class="coluna-nome">{{ aluno.nome }}</td>
+            <td class="coluna-email">{{ aluno.email }}</td>
             <td class="coluna-acoes">
               <div class="acoes-wrapper">
-                <button 
-                  class="botao-icone botao-editar"
-                  @click="$emit('abrir-modal-aluno', aluno)"
-                  aria-label="Editar aluno"
-                  data-tooltip="Editar"
-                >
+                <button class="botao-icone botao-editar" @click="abrirModalAluno(aluno)">
                   <i class="fas fa-edit"></i>
                 </button>
-                <button 
-                  class="botao-icone botao-excluir"
-                  @click="$emit('confirmar-exclusao', 'aluno', aluno.id)"
-                  aria-label="Excluir aluno"
-                  data-tooltip="Excluir"
-                >
+                <button class="botao-icone botao-excluir" @click="confirmarExclusao(aluno)">
                   <i class="fas fa-trash-alt"></i>
                 </button>
-                
+                <button class="botao-icone botao-turmas" @click="selecionarAlunoParaMatricula(aluno)">
+                  <i class="fas fa-users-class"></i>
+                </button>
               </div>
             </td>
           </tr>
@@ -84,10 +56,206 @@
         <div class="empty-state">
           <i class="fas fa-user-graduate icone-vazio"></i>
           <h3>Nenhum aluno encontrado</h3>
-          <p>Não encontramos resultados para sua pesquisa. Tente ajustar os termos ou cadastre um novo aluno.</p>
-          <button class="botao-primario" @click="$emit('abrir-modal-aluno', null)">
+          <p>Não encontramos resultados para sua pesquisa.</p>
+          <button class="botao-primario" @click="abrirModalAluno(null)">
             <i class="fas fa-plus"></i>
             Adicionar Aluno
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção de Matrículas em Turmas -->
+    <div class="secao-matriculas">
+      <div class="cabecalho-secao">
+        <h3 class="titulo-secao">Matrículas em Turmas</h3>
+        <button 
+          class="botao-primario" 
+          @click="abrirModalMatricula(null)"
+          v-if="!alunoSelecionadoParaMatricula"
+        >
+          <i class="fas fa-plus"></i>
+          <span>Nova Matrícula</span>
+        </button>
+        <button 
+          class="botao-secundario" 
+          @click="cancelarSelecaoAluno"
+          v-else
+        >
+          <i class="fas fa-times"></i>
+          <span>Cancelar seleção</span>
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros-matriculas">
+        <select v-model="filtroTurma" class="campo-selecao">
+          <option value="">Todas as turmas</option>
+          <option v-for="turma in turmas" :key="turma.id" :value="turma.id">
+            {{ turma.codigo }} - {{ turma.nome }}
+          </option>
+        </select>
+        <select v-model="filtroStatus" class="campo-selecao">
+          <option value="">Todos os status</option>
+          <option value="ativo">Ativo</option>
+          <option value="inativo">Inativo</option>
+          <option value="trancado">Trancado</option>
+        </select>
+      </div>
+
+      <!-- Botão especial para vincular aluno selecionado -->
+      <div class="aluno-selecionado" v-if="alunoSelecionadoParaMatricula">
+        <div class="info-aluno">
+          <span class="nome-aluno">{{ alunoSelecionadoParaMatricula.nome }}</span>
+          <span class="id-aluno">ID: {{ alunoSelecionadoParaMatricula.id }}</span>
+        </div>
+        <button 
+          class="botao-primario botao-vincular"
+          @click="abrirModalMatricula(alunoSelecionadoParaMatricula)"
+        >
+          <i class="fas fa-link"></i>
+          <span>Vincular à Turma</span>
+        </button>
+      </div>
+
+      <!-- Tabela de matrículas -->
+      <div class="tabela-wrapper">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th>Aluno</th>
+              <th>Turma</th>
+              <th>Status</th>
+              <th>Média Final</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="matricula in matriculasFiltradas" :key="matricula.id">
+              <td>{{ getNomeAluno(matricula.aluno) }}</td>
+              <td>{{ getDescricaoTurma(matricula.turma) }}</td>
+              <td>
+                <span :class="`status-badge ${matricula.status}`">
+                  {{ matricula.status }}
+                </span>
+              </td>
+              <td>{{ matricula.media_final || '-' }}</td>
+              <td>
+                <div class="acoes-wrapper">
+                  <button class="botao-icone botao-editar" @click="abrirModalMatriculaEdicao(matricula)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="botao-icone botao-excluir" @click="confirmarExclusaoMatricula(matricula)">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div v-if="matriculasFiltradas.length === 0" class="sem-resultados">
+          <div class="empty-state">
+            <i class="fas fa-users-class icone-vazio"></i>
+            <h3>Nenhuma matrícula encontrada</h3>
+            <p>Não encontramos resultados para sua pesquisa.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Aluno -->
+    <ModalAluno
+      v-if="modalAlunoAberto"
+      :aluno="alunoEditando"
+      @fechar="fecharModalAluno"
+      @salvar="salvarAluno"
+    />
+
+    <!-- Modal Matrícula -->
+    <div v-if="modalMatriculaAberto" class="modal-overlay" @click.self="fecharModalMatricula">
+      <div class="modal">
+        <div class="modal__cabecalho">
+          <h3 class="modal__titulo">
+            {{ matriculaEditando ? 'Editar Matrícula' : 'Cadastrar Aluno na Turma' }}
+          </h3>
+          <button class="modal__fechar" @click="fecharModalMatricula">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal__corpo">
+          <!-- Aluno (automático quando selecionado da tabela) -->
+          <div class="campo-formulario" v-if="alunoSelecionadoParaMatricula">
+            <label>Aluno:</label>
+            <div class="aluno-info-modal">
+              <span class="nome">{{ alunoSelecionadoParaMatricula.nome }}</span>
+              <span class="matricula">Matrícula: {{ alunoSelecionadoParaMatricula.id }}</span>
+            </div>
+            <input type="hidden" v-model="matriculaLocal.aluno">
+          </div>
+
+          <!-- Selecione a turma -->
+          <div class="campo-formulario">
+            <label for="turmaMatricula">Turma *</label>
+            <select 
+              id="turmaMatricula" 
+              v-model="matriculaLocal.turma" 
+              class="campo-selecao"
+              required
+            >
+              <option value="">Selecione uma turma</option>
+              <option 
+                v-for="turma in turmas" 
+                :key="turma.id" 
+                :value="turma.id"
+              >
+                {{ turma.codigo }} - {{ turma.nome }} ({{ turma.periodo }})
+              </option>
+            </select>
+          </div>
+
+          <!-- Status -->
+          <div class="campo-formulario">
+            <label for="statusMatricula">Status *</label>
+            <select 
+              id="statusMatricula" 
+              v-model="matriculaLocal.status" 
+              class="campo-selecao"
+              required
+            >
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+              <option value="trancado">Trancado</option>
+            </select>
+          </div>
+
+          <!-- Média (opcional) -->
+          <div class="campo-formulario">
+            <label for="mediaMatricula">Média Final</label>
+            <input
+              id="mediaMatricula"
+              type="number"
+              v-model="matriculaLocal.media_final"
+              min="0"
+              max="10"
+              step="0.1"
+              placeholder="0.0 a 10.0"
+            >
+          </div>
+        </div>
+
+        <div class="modal__rodape">
+          <button class="botao-secundario" @click="fecharModalMatricula">
+            Cancelar
+          </button>
+          <button 
+            class="botao-primario" 
+            @click="salvarMatricula" 
+            :disabled="!matriculaLocal.turma || loadingMatricula"
+          >
+            <i class="fas fa-save"></i>
+            {{ loadingMatricula ? 'Salvando...' : 'Salvar Matrícula' }}
           </button>
         </div>
       </div>
@@ -96,29 +264,211 @@
 </template>
 
 <script>
+import axios from 'axios'
+import ModalAluno from './ModalAluno.vue'
+
 export default {
-  name: 'GerenciamentoAlunos',
-  props: {
-    alunos: {
-      type: Array,
-      required: true
-    }
+  components: {
+    ModalAluno
   },
   data() {
     return {
-      termoPesquisa: ''
+      termoPesquisa: '',
+      alunos: [],
+      matriculas: [],
+      turmas: [],
+      filtroTurma: '',
+      filtroStatus: '',
+      modalAlunoAberto: false,
+      alunoEditando: null,
+      modalMatriculaAberto: false,
+      matriculaEditando: null,
+      alunoSelecionadoParaMatricula: null,
+      matriculaLocal: {
+        aluno: '',
+        turma: '',
+        status: 'ativo',
+        media_final: null
+      },
+      loadingMatricula: false
     }
   },
   computed: {
     alunosFiltrados() {
-      const termo = this.termoPesquisa.toLowerCase()
       return this.alunos.filter(aluno => {
-        return (
-          aluno.id.toLowerCase().includes(termo) ||
-          aluno.nome.toLowerCase().includes(termo) ||
-          aluno.periodo.toLowerCase().includes(termo)
+        return aluno.tipo === 'aluno' && (
+          aluno.id.toString().includes(this.termoPesquisa) ||
+          aluno.nome.toLowerCase().includes(this.termoPesquisa.toLowerCase()) ||
+          aluno.email.toLowerCase().includes(this.termoPesquisa.toLowerCase())
         )
       })
+    },
+    matriculasFiltradas() {
+      return this.matriculas.filter(matricula => {
+        const turmaMatch = this.filtroTurma ? matricula.turma == this.filtroTurma : true
+        const statusMatch = this.filtroStatus ? matricula.status === this.filtroStatus : true
+        return turmaMatch && statusMatch
+      })
+    }
+  },
+  created() {
+    this.carregarAlunos()
+    this.carregarMatriculas()
+    this.carregarTurmas()
+  },
+  methods: {
+    async carregarAlunos() {
+      try {
+        const response = await axios.get('http://localhost:8000/api/usuarios/')
+        this.alunos = response.data
+      } catch (error) {
+        console.error('Erro ao carregar alunos:', error)
+        alert('Erro ao carregar alunos')
+      }
+    },
+    async carregarMatriculas() {
+      try {
+        const response = await axios.get('http://localhost:8000/api/matriculas/')
+        this.matriculas = response.data
+      } catch (error) {
+        console.error('Erro ao carregar matrículas:', error)
+        alert('Erro ao carregar matrículas')
+      }
+    },
+    async carregarTurmas() {
+      try {
+        const response = await axios.get('http://localhost:8000/api/turmas/')
+        this.turmas = response.data
+      } catch (error) {
+        console.error('Erro ao carregar turmas:', error)
+        alert('Erro ao carregar turmas')
+      }
+    },
+    getNomeAluno(id) {
+      const aluno = this.alunos.find(a => a.id == id)
+      return aluno ? aluno.nome : 'Aluno não encontrado'
+    },
+    getDescricaoTurma(id) {
+      const turma = this.turmas.find(t => t.id == id)
+      return turma ? `${turma.codigo} - ${turma.nome}` : 'Turma não encontrada'
+    },
+    abrirModalAluno(aluno) {
+      this.alunoEditando = aluno
+      this.modalAlunoAberto = true
+    },
+    fecharModalAluno() {
+      this.modalAlunoAberto = false
+      this.alunoEditando = null
+    },
+    async salvarAluno(aluno) {
+      try {
+        if (aluno.id) {
+          await axios.put(`http://localhost:8000/api/usuarios/${aluno.id}/`, aluno)
+        } else {
+          await axios.post('http://localhost:8000/api/usuarios/', aluno)
+        }
+        await this.carregarAlunos()
+        this.fecharModalAluno()
+      } catch (error) {
+        console.error('Erro ao salvar aluno:', error)
+        alert('Erro ao salvar aluno')
+      }
+    },
+    confirmarExclusao(aluno) {
+      if (confirm(`Excluir aluno ${aluno.nome}?`)) {
+        this.excluirAluno(aluno.id)
+      }
+    },
+    async excluirAluno(id) {
+      try {
+        await axios.delete(`http://localhost:8000/api/usuarios/${id}/`)
+        await this.carregarAlunos()
+      } catch (error) {
+        console.error('Erro ao excluir aluno:', error)
+        alert('Erro ao excluir aluno')
+      }
+    },
+    selecionarAlunoParaMatricula(aluno) {
+      this.alunoSelecionadoParaMatricula = aluno
+      window.scrollTo({
+        top: document.querySelector('.secao-matriculas').offsetTop,
+        behavior: 'smooth'
+      })
+    },
+    cancelarSelecaoAluno() {
+      this.alunoSelecionadoParaMatricula = null
+    },
+    abrirModalMatricula(aluno = null) {
+      if (aluno) {
+        this.alunoSelecionadoParaMatricula = aluno
+        this.matriculaLocal = {
+          aluno: aluno.id,
+          turma: '',
+          status: 'ativo',
+          media_final: null
+        }
+      }
+      this.modalMatriculaAberto = true
+      this.matriculaEditando = null
+    },
+    abrirModalMatriculaEdicao(matricula) {
+      this.alunoSelecionadoParaMatricula = this.alunos.find(a => a.id == matricula.aluno)
+      this.matriculaEditando = matricula
+      this.matriculaLocal = { ...matricula }
+      this.modalMatriculaAberto = true
+    },
+    fecharModalMatricula() {
+      this.modalMatriculaAberto = false
+      this.matriculaEditando = null
+      this.alunoSelecionadoParaMatricula = null
+    },
+    async salvarMatricula() {
+      if (!this.matriculaLocal.turma) {
+        alert('Selecione uma turma')
+        return
+      }
+
+      this.loadingMatricula = true
+
+      try {
+        const dados = {
+          aluno: this.matriculaLocal.aluno,
+          turma: Number(this.matriculaLocal.turma),
+          status: this.matriculaLocal.status,
+          media_final: this.matriculaLocal.media_final ? 
+            parseFloat(this.matriculaLocal.media_final) : null
+        }
+
+        if (this.matriculaEditando) {
+          await axios.put(`http://localhost:8000/api/matriculas/${this.matriculaEditando.id}/`, dados)
+        } else {
+          await axios.post('http://localhost:8000/api/matriculas/', dados)
+        }
+
+        await this.carregarMatriculas()
+        this.fecharModalMatricula()
+        alert('Matrícula salva com sucesso!')
+      } catch (error) {
+        console.error('Erro ao salvar matrícula:', error.response?.data || error)
+        alert('Erro ao salvar matrícula: ' + 
+          (error.response?.data ? JSON.stringify(error.response.data) : error.message))
+      } finally {
+        this.loadingMatricula = false
+      }
+    },
+    confirmarExclusaoMatricula(matricula) {
+      if (confirm(`Excluir matrícula de ${this.getNomeAluno(matricula.aluno)} na turma ${this.getDescricaoTurma(matricula.turma)}?`)) {
+        this.excluirMatricula(matricula.id)
+      }
+    },
+    async excluirMatricula(id) {
+      try {
+        await axios.delete(`http://localhost:8000/api/matriculas/${id}/`)
+        await this.carregarMatriculas()
+      } catch (error) {
+        console.error('Erro ao excluir matrícula:', error)
+        alert('Erro ao excluir matrícula')
+      }
     }
   }
 }
@@ -126,344 +476,348 @@ export default {
 
 <style scoped>
 .gerenciamento {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 32px 40px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  margin: 24px auto;
-  max-width: 1400px;
-  margin-left: 240px;
-  margin-top: 70px;
-  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  margin-left: 250px;
+  margin-top: 80px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .gerenciamento__cabecalho {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-}
-
-.titulo-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.icone-titulo-container {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
-}
-
-.icone-titulo {
-  color: white;
-  font-size: 1.2rem;
-}
-
-.gerenciamento__titulo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #2d3748;
-  margin: 0;
-}
-
-.botao-primario {
-  background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
-}
-
-.botao-primario:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
-}
-
-.botao-primario:active {
-  transform: translateY(0);
+  margin-bottom: 20px;
 }
 
 .barra-pesquisa {
   position: relative;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
+  margin-bottom: 20px;
 }
 
 .icone-pesquisa {
   position: absolute;
-  left: 1rem;
+  left: 10px;
+  top: 10px;
   color: #718096;
 }
 
 .campo-pesquisa {
   width: 100%;
-  padding: 14px 20px 14px 40px;
+  padding: 10px 10px 10px 35px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  transition: all 0.3s;
-  background-color: #f8fafc;
-}
-
-.campo-pesquisa:focus {
-  outline: none;
-  border-color: #4361ee;
-  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-  background-color: white;
+  border-radius: 6px;
+  font-size: 14px;
 }
 
 .contador-resultados {
-  position: absolute;
-  right: 16px;
-  font-size: 0.85rem;
+  font-size: 12px;
   color: #718096;
+  margin-top: 5px;
 }
 
 .tabela-wrapper {
   overflow-x: auto;
-  border-radius: 12px;
-  border: 1px solid #edf2f7;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 30px;
 }
 
 .tabela {
   width: 100%;
   border-collapse: collapse;
-  min-width: 800px;
 }
 
 .tabela th {
   background-color: #f8fafc;
-  color: #4a5568;
-  font-weight: 600;
+  padding: 12px 15px;
   text-align: left;
-  padding: 16px 20px;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: #4a5568;
   border-bottom: 2px solid #e2e8f0;
 }
 
 .tabela td {
-  padding: 16px 20px;
+  padding: 12px 15px;
   border-bottom: 1px solid #edf2f7;
   color: #4a5568;
-  font-size: 0.95rem;
-  vertical-align: middle;
-}
-
-.tabela tr:last-child td {
-  border-bottom: none;
 }
 
 .tabela tr:hover {
   background-color: #f8fafc;
 }
 
-.sort-icon {
-  margin-left: 8px;
-  color: #cbd5e0;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.sort-icon:hover {
-  color: #718096;
-}
-
-.badge-matricula {
-  background-color: #e0e7ff;
-  color: #4338ca;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.aluno-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar-placeholder {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #3a0ca3;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.periodo-badge {
-  background-color: #ecfdf5;
-  color: #065f46;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.coluna-acoes {
-  width: 160px;
-}
-
 .acoes-wrapper {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
 }
 
 .botao-icone {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
   border: none;
   color: white;
-  position: relative;
-}
-
-.botao-icone:hover {
-  transform: translateY(-2px);
-}
-
-.botao-icone:active {
-  transform: translateY(0);
-}
-
-.botao-icone::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #2d3748;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s;
-  white-space: nowrap;
-}
-
-.botao-icone:hover::after {
-  opacity: 1;
 }
 
 .botao-editar {
   background-color: #3b82f6;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-}
-
-.botao-editar:hover {
-  background-color: #2563eb;
 }
 
 .botao-excluir {
   background-color: #ef4444;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
 }
 
-.botao-excluir:hover {
-  background-color: #dc2626;
-}
-
-.botao-visualizar {
-  background-color: #10b981;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
-}
-
-.botao-visualizar:hover {
-  background-color: #059669;
+.botao-turmas {
+  background-color: #8b5cf6;
 }
 
 .sem-resultados {
-  padding: 3rem 1rem;
+  padding: 30px;
   text-align: center;
-  color: #64748b;
 }
 
 .empty-state {
   max-width: 400px;
   margin: 0 auto;
-  padding: 2rem 0;
 }
 
 .icone-vazio {
-  font-size: 3.5rem;
-  margin-bottom: 1.5rem;
+  font-size: 50px;
   color: #e2e8f0;
-  background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  margin-bottom: 15px;
 }
 
-.empty-state h3 {
+.botao-primario {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.botao-primario:hover {
+  background: #1d4ed8;
+}
+
+.botao-secundario {
+  background: #e2e8f0;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.botao-secundario:hover {
+  background: #cbd5e0;
+}
+
+/* Seção de Matrículas */
+.secao-matriculas {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cabecalho-secao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.titulo-secao {
   font-size: 1.25rem;
-  margin-bottom: 0.5rem;
-  color: #1e293b;
+  font-weight: 600;
+  color: #2d3748;
 }
 
-.empty-state p {
-  margin-bottom: 1.5rem;
+.filtros-matriculas {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.campo-selecao {
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-width: 200px;
+  background-color: #f8fafc;
+}
+
+.aluno-selecionado {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+}
+
+.info-aluno {
+  display: flex;
+  flex-direction: column;
+}
+
+.nome-aluno {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.id-aluno {
   color: #64748b;
-  line-height: 1.5;
+  font-size: 14px;
 }
 
-@media (max-width: 768px) {
-  .gerenciamento {
-    padding: 1.5rem;
-    margin: 16px;
-  }
-  
-  .gerenciamento__cabecalho {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .barra-pesquisa {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .contador-resultados {
-    position: static;
-    margin-top: 8px;
-    align-self: flex-end;
-  }
-  
-  .empty-state {
-    padding: 1rem 0;
-  }
+.botao-vincular {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-badge.ativo {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.inativo {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge.trancado {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal__titulo {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.modal__fechar {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.modal__corpo {
+  margin-bottom: 20px;
+}
+
+.campo-formulario {
+  margin-bottom: 15px;
+}
+
+.campo-formulario label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.campo-formulario input,
+.campo-formulario select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.campo-formulario input:focus,
+.campo-formulario select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.aluno-info-modal {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.aluno-info-modal .nome {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.aluno-info-modal .matricula {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.modal__rodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.fa-users-class {
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  content: "\f63d";
 }
 </style>

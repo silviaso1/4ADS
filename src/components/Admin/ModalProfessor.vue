@@ -9,7 +9,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <div class="modal__corpo">
         <div class="campo-formulario">
           <label for="nomeProfessor">Nome:</label>
@@ -18,9 +18,10 @@
             id="nomeProfessor"
             v-model="professorLocal.nome"
             placeholder="Digite o nome do professor"
+            required
           >
         </div>
-        
+
         <div class="campo-formulario">
           <label for="emailProfessor">Email:</label>
           <input
@@ -28,9 +29,10 @@
             id="emailProfessor"
             v-model="professorLocal.email"
             placeholder="Email institucional"
+            required
           >
         </div>
-        
+
         <div class="campo-formulario">
           <label for="senhaProfessor">Senha:</label>
           <input
@@ -38,16 +40,17 @@
             id="senhaProfessor"
             v-model="professorLocal.senha"
             :placeholder="professor ? 'Deixe em branco para não alterar' : 'Digite a senha'"
+            :required="!professor"
           >
         </div>
       </div>
-      
+
       <div class="modal__rodape">
         <button class="botao-secundario" @click="fecharModal">
           Cancelar
         </button>
-        <button class="botao-primario" @click="salvar">
-          {{ professor ? 'Salvar Alterações' : 'Cadastrar Professor' }}
+        <button class="botao-primario" @click="salvar" :disabled="loading">
+          {{ loading ? 'Salvando...' : (professor ? 'Salvar Alterações' : 'Cadastrar Professor') }}
         </button>
       </div>
     </div>
@@ -67,47 +70,64 @@ export default {
   },
   data() {
     return {
-      professorLocal: this.professor 
-        ? { ...this.professor, senha: '' } 
-        : { nome: '', email: '', senha: '' }
+      professorLocal: this.professor
+        ? { ...this.professor, senha: '' }
+        : { nome: '', email: '', senha: '' },
+      loading: false
     }
   },
   methods: {
     fecharModal() {
       this.$emit('fechar')
     },
+
     async salvar() {
-      if (!this.professorLocal.nome || !this.professorLocal.email) {
-        alert('Preencha todos os campos obrigatórios')
+      if (!this.professorLocal.nome.trim() || !this.professorLocal.email.trim()) {
+        alert('Preencha todos os campos obrigatórios.')
         return
       }
 
-      if (!this.professor && !this.professorLocal.senha) {
-        alert('A senha é obrigatória para novos professores')
+      if (!this.professor && !this.professorLocal.senha.trim()) {
+        alert('A senha é obrigatória para novos professores.')
         return
       }
 
-      const novoProfessor = {
-        nome: this.professorLocal.nome,
-        email: this.professorLocal.email,
-        senha: this.professorLocal.senha,
+      const token = '52e42938087eea9afd4ec5f4a55de85da5d4d9c9' // token do admin logado
+      const urlBase = 'http://localhost:8000/api/usuarios/login/'
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+
+      const payload = {
+        nome: this.professorLocal.nome.trim(),
+        email: this.professorLocal.email.trim(),
         tipo: 'professor'
       }
 
-      try {
-        await axios.post('http://localhost:8000/api/usuarios/login/', novoProfessor, {
-          headers: {
-            Authorization: 'dd11734604075d416eda15ba86f7b3ea7848ae03',
-            'Content-Type': 'application/json'
-          }
-        })
+      if (this.professorLocal.senha.trim()) {
+        payload.senha = this.professorLocal.senha.trim()
+      }
 
+      this.loading = true
+
+      try {
+        const response = await axios.post(urlBase, payload, { headers })
         alert('Professor cadastrado com sucesso!')
-        this.$emit('salvar', novoProfessor)
+        this.$emit('salvar', response.data)
         this.fecharModal()
       } catch (erro) {
         console.error('Erro ao cadastrar professor:', erro)
-        alert('Erro ao cadastrar professor. Verifique os dados ou permissões.')
+        if (erro.response?.data) {
+          const mensagens = Object.entries(erro.response.data)
+            .map(([campo, erros]) => `${campo}: ${erros.join(', ')}`)
+            .join('\n')
+          alert(`Erro ao cadastrar professor:\n${mensagens}`)
+        } else {
+          alert('Erro ao cadastrar professor. Verifique os dados ou permissões.')
+        }
+      } finally {
+        this.loading = false
       }
     }
   }
@@ -212,8 +232,8 @@ export default {
 
 .campo-formulario input:focus {
   outline: none;
-  border-color: #3490dc;
-  box-shadow: 0 0 0 3px rgba(52, 144, 220, 0.1);
+  border-color: #9f7aea;
+  box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.2);
 }
 
 .modal__rodape {
@@ -228,10 +248,11 @@ export default {
   background-color: #9f7aea;
   border: none;
   color: white;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 1.2rem;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: 0.3s;
+  font-weight: 600;
 }
 
 .botao-primario:hover {
@@ -239,16 +260,16 @@ export default {
 }
 
 .botao-secundario {
-  background-color: transparent;
-  border: 1px solid #ccc;
-  color: #555;
-  padding: 0.6rem 1rem;
+  background-color: #e2e8f0;
+  border: none;
+  color: #4a5568;
+  padding: 0.6rem 1.2rem;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: 0.3s;
 }
 
 .botao-secundario:hover {
-  background-color: #f5f5f5;
+  background-color: #cbd5e0;
 }
 </style>

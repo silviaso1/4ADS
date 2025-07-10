@@ -41,7 +41,7 @@
           <div class="input-with-icon">
             <i class="fas fa-lock"></i>
             <input 
-              type="password" 
+              :type="showPassword ? 'text' : 'password'"
               id="password" 
               v-model="password" 
               placeholder="Digite sua senha"
@@ -86,7 +86,7 @@ export default {
       username: '',
       password: '',
       rememberMe: false,
-      selectedUserType: 'student',
+      selectedUserType: 'teacher', // Default professor
       showPassword: false,
       userTypes: [
         { value: 'student', label: 'Aluno', icon: 'fas fa-user-graduate' },
@@ -98,67 +98,64 @@ export default {
   },
   methods: {
     selectUserType(type) {
-      this.selectedUserType = type;
+      this.selectedUserType = type
       this.errorMsg = ''
     },
     togglePasswordVisibility() {
-      const passwordInput = document.getElementById('password');
-      this.showPassword = !this.showPassword;
-      passwordInput.type = this.showPassword ? 'text' : 'password';
+      this.showPassword = !this.showPassword
     },
     async handleLogin() {
       this.errorMsg = ''
+
       if (!this.username || !this.password) {
         this.errorMsg = 'Preencha usuário e senha.'
         return
       }
+
       try {
-        const response = await axios.post('http://localhost:8000/api/usuarios/login/', {
+        // 1. Autenticação - chama POST para login
+        await axios.post('http://localhost:8000/api/usuarios/login/', {
           email: this.username,
-          senha: this.password
+          senha: this.password,
+          tipo: this.selectedUserType === 'teacher' ? 'professor' : this.selectedUserType
         })
 
-        // Resposta esperada: { mensagem, token, tipo }
-        const { token, tipo } = response.data
+        // 2. Busca dados do usuário em /api/usuarios/
+        const usuariosResponse = await axios.get('http://localhost:8000/api/usuarios/')
 
-        // Mapeia o selectedUserType para o nome usado no backend
-        const tipoMap = {
-          student: 'aluno',
-          teacher: 'professor',
-          admin: 'admin'
+        // 3. Filtra o usuário logado pelo email/usuario e tipo
+        const usuarioLogado = usuariosResponse.data.find(u =>
+          (u.email === this.username || u.usuario === this.username) &&
+          (this.selectedUserType === 'teacher' ? u.tipo === 'professor' : u.tipo === this.selectedUserType)
+        )
+
+        if (!usuarioLogado) {
+          this.errorMsg = 'Usuário não encontrado.'
+          return
         }
 
-        if (tipo === tipoMap[this.selectedUserType]) {
-          // Login válido
-          if (this.rememberMe) {
-            localStorage.setItem('token', token)
-            localStorage.setItem('userType', tipo)
-          } else {
-            sessionStorage.setItem('token', token)
-            sessionStorage.setItem('userType', tipo)
-          }
-
-          // Redireciona para rota baseada no tipo
-          const rotaMap = {
-            aluno: '/alunos',
-            professor: '/professor',
-            admin: '/admin'
-          }
-          this.$router.push(rotaMap[tipo])
-
+        // 4. Salva id no storage
+        if (this.rememberMe) {
+          localStorage.setItem('professorId', usuarioLogado.id)
         } else {
-          this.errorMsg = 'Tipo de usuário incorreto para esse login.'
+          sessionStorage.setItem('professorId', usuarioLogado.id)
         }
+
+        // 5. Redireciona
+        this.$router.push('/professor')
+
       } catch (error) {
-        this.errorMsg = 'Usuário ou senha inválidos.'
         console.error('Erro no login:', error)
+        this.errorMsg = error.response?.data?.message || 'Usuário ou senha inválidos'
       }
     }
   }
 }
 </script>
 
+
 <style scoped>
+/* Estilos permanecem exatamente os mesmos */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 * {

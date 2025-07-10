@@ -9,26 +9,51 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <div class="modal__corpo">
-        <div class="campo-formulario">
-          <label for="idAluno">ID:</label>
+        <div class="campo-formulario" v-if="aluno">
+          <label for="idAluno">ID (Gerado pelo sistema):</label>
           <input
             type="text"
             id="idAluno"
             v-model="alunoLocal.id"
-            placeholder="Ex: 2023001"
+            readonly
+          >
+        </div>
+
+        <div class="campo-formulario" v-if="aluno">
+          <label for="matriculaAluno">Matrícula (Gerada pelo sistema):</label>
+          <input
+            type="text"
+            id="matriculaAluno"
+            v-model="alunoLocal.matricula"
+            readonly
+          >
+        </div>
+
+        <div class="campo-formulario" v-else>
+          <!-- Quando não existe aluno, não mostra id nem matrícula pois são gerados no backend -->
+          <p><em>ID e Matrícula serão gerados automaticamente pelo sistema após o cadastro.</em></p>
+        </div>
+
+        <div class="campo-formulario">
+          <label for="nomeAluno">Nome:</label>
+          <input
+            type="text"
+            id="nomeAluno"
+            v-model="alunoLocal.nome"
+            placeholder="Digite o nome do aluno"
             required
           >
         </div>
 
         <div class="campo-formulario">
-          <label for="matriculaAluno">Matrícula:</label>
+          <label for="emailAluno">Email:</label>
           <input
-            type="text"
-            id="matriculaAluno"
-            v-model="alunoLocal.matricula"
-            placeholder="Ex: 002200202"
+            type="email"
+            id="emailAluno"
+            v-model="alunoLocal.email"
+            placeholder="Email institucional"
             required
           >
         </div>
@@ -43,8 +68,29 @@
             required
           >
         </div>
+
+        <div class="campo-formulario">
+          <label for="senhaAluno">Senha:</label>
+          <input
+            type="password"
+            id="senhaAluno"
+            v-model="alunoLocal.senha"
+            :placeholder="aluno ? 'Deixe em branco para não alterar' : 'Digite a senha'"
+            :required="!aluno"
+          >
+        </div>
+
+        <div class="campo-formulario">
+          <label for="tipoAluno">Tipo:</label>
+          <input
+            type="text"
+            id="tipoAluno"
+            v-model="alunoLocal.tipo"
+            readonly
+          >
+        </div>
       </div>
-      
+
       <div class="modal__rodape">
         <button class="botao-secundario" @click="fecharModal">
           Cancelar
@@ -70,11 +116,9 @@ export default {
   },
   data() {
     return {
-      alunoLocal: {
-        id: this.aluno ? this.aluno.id : '',
-        matricula: this.aluno ? this.aluno.matricula : '',
-        periodo_ingresso: this.aluno ? this.aluno.periodo_ingresso : ''
-      },
+      alunoLocal: this.aluno
+        ? { ...this.aluno, senha: '' }
+        : { nome: '', email: '', periodo_ingresso: '', senha: '', tipo: 'aluno' },
       loading: false,
       errorMsg: ''
     }
@@ -85,12 +129,14 @@ export default {
     },
 
     async salvar() {
+      // validação dos campos obrigatórios
       if (
-        !this.alunoLocal.id.trim() ||
-        !this.alunoLocal.matricula.trim() ||
-        !this.alunoLocal.periodo_ingresso.trim()
+        !this.alunoLocal.nome.trim() ||
+        !this.alunoLocal.email.trim() ||
+        !this.alunoLocal.periodo_ingresso.trim() ||
+        (!this.aluno && !this.alunoLocal.senha.trim())
       ) {
-        alert('Preencha todos os campos obrigatórios, inclusive o ID')
+        alert('Preencha todos os campos obrigatórios')
         return
       }
 
@@ -98,30 +144,34 @@ export default {
       this.errorMsg = ''
 
       try {
-        const token = '039158ff2f7056df4a2d999c925afb79ee3cc8e0'
-        const urlBase = 'http://localhost:8000/api/alunos/'
+        const urlBase = 'http://localhost:8000/api/usuarios/'
 
+        // Monta os dados para envio
         const dados = {
-          id: this.alunoLocal.id.trim(),
-          matricula: this.alunoLocal.matricula.trim(),
-          periodo_ingresso: this.alunoLocal.periodo_ingresso.trim()
+          nome: this.alunoLocal.nome.trim(),
+          email: this.alunoLocal.email.trim(),
+          periodo_ingresso: this.alunoLocal.periodo_ingresso.trim(),
+          tipo: 'aluno'
+        }
+        if (!this.aluno || this.alunoLocal.senha.trim() !== '') {
+          dados.senha = this.alunoLocal.senha.trim()
         }
 
         let response
 
         if (this.aluno) {
-          // edição (PUT /api/alunos/:id)
-          response = await axios.put(`${urlBase}${this.alunoLocal.id}`, dados, {
+          // PUT para editar aluno (usa o id no endpoint)
+          response = await axios.put(`${urlBase}${this.alunoLocal.id}/`, dados, {
             headers: {
-              Authorization: `Bearer ${token}`
+              'Content-Type': 'application/json'
             }
           })
           alert('Aluno atualizado com sucesso!')
         } else {
-          // criação (POST /api/alunos/)
+          // POST para criar aluno, sem id e matrícula no corpo (gerados backend)
           response = await axios.post(urlBase, dados, {
             headers: {
-              Authorization: `Bearer ${token}`
+              'Content-Type': 'application/json'
             }
           })
           alert('Aluno cadastrado com sucesso!')
@@ -129,15 +179,15 @@ export default {
 
         this.$emit('salvar', response.data)
         this.fecharModal()
-
       } catch (error) {
         console.error('Erro ao salvar aluno:', error)
-        if (error.response) {
-          this.errorMsg = error.response.data || 'Erro ao salvar aluno.'
-          alert(JSON.stringify(this.errorMsg))
+        if (error.response?.data) {
+          const mensagens = Object.entries(error.response.data)
+            .map(([campo, erros]) => `${campo}: ${erros.join(', ')}`)
+            .join('\n')
+          alert(`Erro ao salvar aluno:\n${mensagens}`)
         } else {
-          this.errorMsg = 'Erro ao salvar aluno.'
-          alert(this.errorMsg)
+          alert('Erro ao salvar aluno.')
         }
       } finally {
         this.loading = false
@@ -148,6 +198,8 @@ export default {
 </script>
 
 <style scoped>
+/* Mesmos estilos que já usava */
+
 .modal-overlay {
   position: fixed;
   top: 0;
