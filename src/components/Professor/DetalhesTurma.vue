@@ -1,5 +1,5 @@
 <template>
-  <div class="detalhes-turma-container">
+  <div class="detalhes-turma-container" v-if="turma">
     <!-- Header com efeito de gradiente -->
     <div class="turma-header">
       <button @click="$emit('voltar')" class="voltar-btn floating-btn">
@@ -23,7 +23,6 @@
           <p>{{ turma.horario || 'Não informado' }}</p>
         </div>
       </div>
-      
       <div class="info-card">
         <i class="fas fa-door-open"></i>
         <div>
@@ -33,7 +32,7 @@
       </div>
     </div>
 
-    <!-- Seção de atividades com design de abas -->
+    <!-- Atividades -->
     <div class="atividades-section">
       <div class="section-header">
         <h2><i class="fas fa-tasks"></i> Atividades</h2>
@@ -41,30 +40,28 @@
           <i class="fas fa-plus-circle"></i> Lançar Notas
         </button>
       </div>
-      
       <div class="atividades-grid">
         <div v-for="atividade in atividades" :key="atividade.id" class="atividade-card">
-          <div class="atividade-icon">
-            <i class="fas fa-clipboard-check"></i>
-          </div>
+          <div class="atividade-icon"><i class="fas fa-clipboard-check"></i></div>
           <h3>{{ atividade.nome }}</h3>
         </div>
       </div>
     </div>
 
-    <!-- Tabela de alunos com design moderno -->
+    <!-- Alunos -->
     <div class="alunos-section">
-      <h2><i class="fas fa-users"></i> Alunos</h2>
-      <TabelaAlunos 
-        :alunos="turma.alunos || []" 
-        @ordenar="ordenarAlunos"
-      />
+      <h2><i class="fas fa-users"></i> Alunos Matriculados</h2>
+      <ul>
+        <li v-for="aluno in alunosMatriculados" :key="aluno.id">
+          {{ aluno.nome }} ({{ aluno.email }})
+        </li>
+      </ul>
     </div>
 
-    <!-- Modal (mantido igual) -->
+    <!-- Modal -->
     <ModalNotas 
       v-if="exibirModalNotas"
-      :alunos="turma.alunos"
+      :alunos="alunosMatriculados"
       :atividades="atividades"
       @fechar="exibirModalNotas = false"
       @salvar="salvarNotas"
@@ -73,44 +70,74 @@
 </template>
 
 <script>
+import axios from 'axios'
 import ModalNotas from './ModalNotas.vue'
-import TabelaAlunos from './TabelaAlunos.vue'
 
 export default {
   name: 'DetalhesTurma',
-  components: {
-    ModalNotas,
-    TabelaAlunos
-  },
+  components: { ModalNotas },
   props: {
-    turma: {
-      type: Object,
+    turmaId: {
+      type: Number,
       required: true
     }
   },
   data() {
     return {
+      turma: null,
+      atividades: [],
       exibirModalNotas: false,
-      atividades: [
-        { id: 1, nome: 'Prova 1' },
-        { id: 2, nome: 'Trabalho Final' }
-      ]
+      usuarios: [],
+      matriculas: []
     }
   },
+  computed: {
+    alunosMatriculados() {
+      const alunos = this.usuarios.filter(u => u.tipo === 'aluno')
+      const matriculasTurma = this.matriculas.filter(m => m.turma === this.turmaId)
+
+      return alunos.filter(aluno =>
+        matriculasTurma.some(m => m.aluno === aluno.id)
+      )
+    }
+  },
+  async created() {
+    await this.carregarDados()
+  },
   methods: {
+    async carregarDados() {
+      try {
+        const [turmaRes, usuariosRes, matriculasRes] = await Promise.all([
+          axios.get(`http://localhost:8000/api/turmas/${this.turmaId}/`),
+          axios.get('http://localhost:8000/api/usuarios/'),
+          axios.get('http://localhost:8000/api/matriculas/')
+        ])
+        this.turma = turmaRes.data
+        this.usuarios = usuariosRes.data
+        this.matriculas = matriculasRes.data
+
+        // Simulando atividades fixas
+        this.atividades = [
+          { id: 1, nome: 'Prova 1' },
+          { id: 2, nome: 'Trabalho Final' }
+        ]
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+        alert('Erro ao carregar turma ou alunos.')
+      }
+    },
     abrirModalNotas() {
       this.exibirModalNotas = true
     },
     salvarNotas(dados) {
       console.log('Notas salvas:', dados)
-      // Aqui você pode fazer uma requisição para salvar as notas na API
-    },
-    ordenarAlunos(campo) {
-      // repassar ordenação
     }
   }
 }
 </script>
+
+
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');

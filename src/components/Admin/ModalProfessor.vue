@@ -92,8 +92,8 @@ export default {
         return
       }
 
-      const token = '52e42938087eea9afd4ec5f4a55de85da5d4d9c9' // token do admin logado
-      const urlBase = 'http://localhost:8000/api/usuarios/login/'
+      const token = '52e42938087eea9afd4ec5f4a55de85da5d4d9c9'
+      const urlBase = 'http://localhost:8000/api/usuarios/'
       const headers = {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -120,7 +120,10 @@ export default {
         console.error('Erro ao cadastrar professor:', erro)
         if (erro.response?.data) {
           const mensagens = Object.entries(erro.response.data)
-            .map(([campo, erros]) => `${campo}: ${erros.join(', ')}`)
+            .map(([campo, erros]) => {
+              const errosArray = Array.isArray(erros) ? erros : [erros]
+              return `${campo}: ${errosArray.join(', ')}`
+            })
             .join('\n')
           alert(`Erro ao cadastrar professor:\n${mensagens}`)
         } else {
@@ -133,6 +136,7 @@ export default {
   }
 }
 </script>
+
 
 <style scoped>
 .modal-overlay {

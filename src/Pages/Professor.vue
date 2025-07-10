@@ -20,7 +20,7 @@
 
         <DetalhesTurma 
           v-else 
-          :turma="turmaSelecionada" 
+          :turma-id="turmaSelecionada.id" 
           @voltar="turmaSelecionada = null"
         />
       </main>
@@ -87,8 +87,6 @@ export default {
   }
 }
 </script>
-
-
 
 <style scoped>
 .portal-professor {

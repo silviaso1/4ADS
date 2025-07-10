@@ -29,10 +29,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="turma in turmasFiltradas" :key="turma.codigo">
+          <tr v-for="turma in turmasFiltradas" :key="turma.id">
             <td class="coluna-codigo">{{ turma.codigo }}</td>
             <td class="coluna-nome">{{ turma.nome }}</td>
-            <td class="coluna-professor">{{ nomeProfessor(turma.professorId) }}</td>
+            <td class="coluna-professor">{{ nomeProfessor(turma.professor) }}</td>
             <td class="coluna-periodo">{{ turma.periodo }}</td>
             <td class="coluna-acoes">
               <button 
@@ -54,7 +54,12 @@
         </tbody>
       </table>
       
-      <div v-if="turmasFiltradas.length === 0" class="sem-resultados">
+      <div v-if="loading" class="sem-resultados">
+        <i class="fas fa-spinner fa-spin icone-vazio"></i>
+        <p>Carregando turmas...</p>
+      </div>
+
+      <div v-else-if="!loading && turmasFiltradas.length === 0" class="sem-resultados">
         <i class="fas fa-door-closed icone-vazio"></i>
         <p>Nenhuma turma encontrada</p>
       </div>
@@ -63,13 +68,11 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'GerenciamentoTurmas',
   props: {
-    turmas: {
-      type: Array,
-      required: true
-    },
     professores: {
       type: Array,
       required: true
@@ -77,7 +80,10 @@ export default {
   },
   data() {
     return {
-      termoPesquisa: ''
+      turmas: [],
+      termoPesquisa: '',
+      loading: false,
+      erro: ''
     }
   },
   computed: {
@@ -85,19 +91,36 @@ export default {
       const termo = this.termoPesquisa.toLowerCase()
       return this.turmas.filter(turma => {
         return (
-          turma.codigo.toLowerCase().includes(termo) ||
-          turma.nome.toLowerCase().includes(termo) ||
-          this.nomeProfessor(turma.professorId).toLowerCase().includes(termo) ||
-          turma.periodo.toLowerCase().includes(termo)
+          (turma.codigo || '').toLowerCase().includes(termo) ||
+          (turma.nome || '').toLowerCase().includes(termo) ||
+          this.nomeProfessor(turma.professor).toLowerCase().includes(termo) ||
+          (turma.periodo || '').toLowerCase().includes(termo)
         )
       })
     }
   },
   methods: {
     nomeProfessor(professorId) {
-      const professor = this.professores.find(p => p.id === professorId)
-      return professor ? professor.nome : 'Não atribuído'
+      if (!professorId) return 'Não atribuído'
+      const prof = this.professores.find(p => p.id === professorId)
+      return prof ? prof.nome : `ID ${professorId}`
+    },
+    async carregarTurmas() {
+      this.loading = true
+      this.erro = ''
+      try {
+        const response = await axios.get('http://localhost:8000/api/turmas/')
+        this.turmas = response.data
+      } catch (error) {
+        this.erro = 'Erro ao carregar turmas.'
+        console.error(error)
+      } finally {
+        this.loading = false
+      }
     }
+  },
+  created() {
+    this.carregarTurmas()
   }
 }
 </script>
