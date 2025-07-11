@@ -97,7 +97,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'sistema_escolar',
         'USER': 'postgres',
-        'PASSWORD': '03032003',
+        'PASSWORD': 'admin',
         'HOST': 'localhost',
         'PORT': '5432',
     }

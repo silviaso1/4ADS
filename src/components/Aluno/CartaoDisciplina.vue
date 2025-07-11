@@ -1,251 +1,377 @@
 <template>
-  <div class="cartao-disciplina" :class="{ 'disponivel': tipo === 'disponivel' }">
-    <div class="info-disciplina">
-      <h3>{{ disciplina.nome }}</h3>
-      <p class="codigo-disciplina">{{ disciplina.codigo }}</p>
-      <p class="professor-disciplina">
-        <i class="fas fa-chalkboard-teacher"></i> {{ disciplina.professor }}
-      </p>
-      <p v-if="tipo === 'disponivel'" class="horario-disciplina">
-        <i class="fas fa-calendar-day"></i> {{ disciplina.horario }}
-      </p>
-    </div>
-    
-    <div v-if="tipo === 'andamento'" class="container-notas">
-      <div class="linha-nota">
-        <span>AV1:</span>
-        <span class="badge-nota" :class="classeNota(disciplina.notas.av1)">
-          {{ formatarNota(disciplina.notas.av1) }}
-        </span>
-      </div>
-      <div class="linha-nota">
-        <span>AV2:</span>
-        <span class="badge-nota" :class="classeNota(disciplina.notas.av2)">
-          {{ formatarNota(disciplina.notas.av2) }}
-        </span>
-      </div>
-      <div class="linha-nota final">
-        <span>Média:</span>
-        <span class="badge-nota" :class="classeNota(disciplina.mediaFinal)">
-          {{ disciplina.mediaFinal.toFixed(1) }}
-        </span>
+  <div class="disciplina-card" :style="{'--card-color': stringToDarkColor(disciplina.nome)}">
+    <!-- Cabeçalho do card com gradiente dinâmico -->
+    <div class="card-header">
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div class="disciplina-avatar" :style="{ backgroundColor: stringToColor(disciplina.nome) }">
+          {{ getInitials(disciplina.nome) }}
+        </div>
+        <div class="disciplina-info">
+          <h3>{{ disciplina.nome }}</h3>
+          <p class="disciplina-code">{{ disciplina.codigo }}</p>
+        </div>
+        <div class="status-chip" :class="getStatusClass(disciplina.mediaFinal)">
+          {{ getStatusText(disciplina.mediaFinal) }}
+        </div>
       </div>
     </div>
     
-    <div v-if="tipo === 'concluida'" class="container-status">
-      <div class="linha-nota">
-        <span>Média Final:</span>
-        <span class="badge-nota" :class="classeNota(disciplina.mediaFinal)">
-          {{ disciplina.mediaFinal.toFixed(1) }}
-        </span>
+    <!-- Corpo do card -->
+    <div class="card-body">
+      <div class="professor-info">
+        <div class="icon-wrapper">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor" d="M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82Z"/>
+          </svg>
+        </div>
+        <span>{{ disciplina.professor }}</span>
       </div>
-      <div class="badge-status" :class="disciplina.status">
-        {{ textoStatus(disciplina.status) }}
+      
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" :style="{width: getProgressWidth(disciplina.mediaFinal)}"></div>
+          <div class="progress-marker" :style="{left: getProgressWidth(disciplina.mediaFinal)}">
+            <span>{{ disciplina.mediaFinal.toFixed(1) }}</span>
+          </div>
+        </div>
+        <div class="progress-labels">
+          <span>0</span>
+          <span>5</span>
+          <span>7</span>
+          <span>10</span>
+        </div>
+      </div>
+      
+      <div class="grades-grid">
+        <div class="grade-item" v-for="nota in disciplina.notas" :key="nota.atividade">
+          <div class="grade-circle" :class="getGradeClass(nota.valor)">
+            {{ formatGrade(nota.valor) }}
+          </div>
+          <div class="grade-label">{{ nota.nomeAtividade }}</div>
+        </div>
       </div>
     </div>
     
-    <button 
-      v-if="tipo === 'disponivel'" 
-      class="botao-matricular" 
-      @click="$emit('matricular', disciplina)"
-    >
-      <i class="fas fa-plus"></i> Matricular
-    </button>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'CartaoDisciplina',
+  name: 'CartaoDisciplinaModerno',
   props: {
-    disciplina: Object,
-    tipo: {
-      type: String,
-      validator: value => ['andamento', 'concluida', 'disponivel'].includes(value),
-      default: 'andamento'
-    }
+    disciplina: Object
   },
   methods: {
-    formatarNota(nota) {
-      return nota !== null ? nota.toFixed(1) : '-'
+    getInitials(name) {
+      if (!name) return '';
+      return name.split(' ').map(n => n[0]).join('').slice(0, 3);
     },
-    classeNota(nota) {
-      if (nota === null) return 'sem-nota'
-      if (nota >= 9) return 'excelente'
-      if (nota >= 7) return 'boa'
-      if (nota >= 5) return 'media'
-      return 'baixa'
-    },
-    textoStatus(status) {
-      const statusMap = {
-        'aprovado': 'Aprovado',
-        'reprovado': 'Reprovado',
-        'cursando': 'Cursando'
+    stringToColor(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
       }
-      return statusMap[status] || status
+      const hue = Math.abs(hash % 360);
+      return `hsl(${hue}, 80%, 85%)`;
+    },
+    stringToDarkColor(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const hue = Math.abs(hash % 360);
+      return `hsl(${hue}, 70%, 30%)`;
+    },
+    formatGrade(grade) {
+      return grade !== null ? grade.toFixed(1) : '--';
+    },
+    getGradeClass(grade) {
+      if (grade === null) return 'empty';
+      if (grade >= 9) return 'excellent';
+      if (grade >= 7) return 'good';
+      if (grade >= 5) return 'average';
+      return 'low';
+    },
+    getStatusClass(media) {
+      if (media >= 7) return 'aprovado';
+      if (media >= 5) return 'recuperacao';
+      return 'reprovado';
+    },
+    getStatusText(media) {
+      if (media >= 7) return 'Aprovado';
+      if (media >= 5) return 'Recuperação';
+      return 'Reprovado';
+    },
+    getProgressWidth(media) {
+      return `${Math.min(100, media * 10)}%`;
     }
   }
 }
 </script>
 
 <style scoped>
-.cartao-disciplina {
-  background-color: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
+:root {
+  --border-radius: 16px;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --transition: all 0.3s ease;
+  --dark: #2d3748;
+  --gray: #718096;
+  --light: #f7fafc;
+}
+
+/* Estilos do card */
+.disciplina-card {
+  background: white;
+  border-radius: var(--border-radius);
   display: flex;
   flex-direction: column;
-  border: 1px solid #eee;
+  position: relative;
+  --card-color: #3b82f6;
+  width: 450px;
+  border: 2px solid rgba(0, 0, 0, 0.973);
+
 }
 
-.cartao-disciplina.disponivel {
-  border: 2px dashed #3498db;
+
+
+.card-header {
+  position: relative;
+  padding: 1.5rem;
+  color: white;
+  overflow: hidden;
 }
 
-.cartao-disciplina:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+.header-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--card-color), #1e40af);
+  z-index: 1;
 }
 
-.info-disciplina {
-  margin-bottom: 15px;
-}
-
-.info-disciplina h3 {
-  color: #2c3e50;
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-.codigo-disciplina {
-  color: #7f8c8d;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-
-.professor-disciplina,
-.horario-disciplina {
-  color: #555;
-  font-size: 13px;
+.header-content {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin: 3px 0;
+  gap: 0.7rem;
 }
 
-.professor-disciplina i,
-.horario-disciplina i {
-  color: #3498db;
-  font-size: 14px;
-  width: 16px;
-  text-align: center;
+.disciplina-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: rgba(0, 0, 0, 0.7);
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Estilos para notas */
-.container-notas,
-.container-status {
-  margin-top: auto;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
+.disciplina-info {
+  flex-grow: 1;
 }
 
-.linha-nota {
+.disciplina-info h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1.3;
+}
+
+.disciplina-code {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.status-chip {
+  padding: 0.4rem 0.8rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  color: white;
+  align-self: flex-start;
+  margin-left: auto;
+}
+
+.status-chip.aprovado {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-chip.recuperacao {
+  background: rgba(234, 179, 8, 0.2);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.status-chip.reprovado {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Corpo do card */
+.card-body {
+  padding: 1.5rem;
+  flex-grow: 1;
+}
+
+.professor-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  color: var(--gray);
+}
+
+.icon-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--card-color);
+}
+
+/* Barra de progresso */
+.progress-container {
+  margin-bottom: 1.5rem;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  position: relative;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--card-color), #60a5fa);
+  transition: width 0.6s ease;
+}
+
+.progress-marker {
+  position: absolute;
+  top: -20px;
+  transform: translateX(-50%);
+  background: rgb(0, 0, 0);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--card-color);
+}
+
+.progress-marker::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgb(0, 0, 0);
+}
+
+.progress-labels {
   display: flex;
   justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--gray);
+}
+
+/* Grades grid */
+.grades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.grade-item {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 8px;
-  font-size: 13px;
+  gap: 0.5rem;
 }
 
-.linha-nota.final {
-  font-weight: 600;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid #eee;
-}
-
-.badge-nota {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.badge-nota.excelente {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.badge-nota.boa {
-  background-color: #e3f2fd;
-  color: #1565c0;
-}
-
-.badge-nota.media {
-  background-color: #fff8e1;
-  color: #ff8f00;
-}
-
-.badge-nota.baixa {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
-.badge-nota.sem-nota {
-  background-color: #f5f5f5;
-  color: #757575;
-}
-
-/* Estilos para status */
-.badge-status {
-  margin-top: 10px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  text-align: center;
-}
-
-.badge-status.aprovado {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.badge-status.reprovado {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
-.badge-status.cursando {
-  background-color: #e3f2fd;
-  color: #1565c0;
-}
-
-/* Botão de matrícula */
-.botao-matricular {
+.grade-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 15px;
-  background-color: #3498db;
-  border: 1px solid #3498db;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 15px;
-  width: 100%;
   justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
 }
 
-.botao-matricular:hover {
-  background-color: #2980b9;
-  box-shadow: 0 3px 10px rgba(52, 152, 219, 0.2);
+.grade-item:hover .grade-circle {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+
+.grade-circle.excellent {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.grade-circle.good {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.grade-circle.average {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.grade-circle.low {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.grade-circle.empty {
+  border-color: #cbd5e1;
+  color: #94a3b8;
+}
+
+.grade-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--gray);
+  text-align: center;
+  line-height: 1.3;
+}
+
+
 </style>

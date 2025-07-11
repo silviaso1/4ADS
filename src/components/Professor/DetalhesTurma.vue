@@ -1,6 +1,6 @@
 <template>
   <div class="detalhes-turma-container" v-if="turma">
-    <!-- Header com efeito de gradiente -->
+    <!-- Header -->
     <div class="turma-header">
       <button @click="$emit('voltar')" class="voltar-btn floating-btn">
         <i class="fas fa-arrow-left"></i>
@@ -14,7 +14,7 @@
       </div>
     </div>
 
-    <!-- Cards flutuantes com informações -->
+    <!-- Cards -->
     <div class="info-cards">
       <div class="info-card">
         <i class="fas fa-clock"></i>
@@ -36,9 +36,14 @@
     <div class="atividades-section">
       <div class="section-header">
         <h2><i class="fas fa-tasks"></i> Atividades</h2>
-        <button @click="abrirModalNotas" class="add-button">
-          <i class="fas fa-plus-circle"></i> Lançar Notas
-        </button>
+        <div style="display: flex; gap: 10px;">
+          <button @click="abrirModalAtividades" class="add-button">
+            <i class="fas fa-plus-circle"></i> Nova Atividade
+          </button>
+          <button @click="abrirModalNotas" class="add-button">
+            <i class="fas fa-pen"></i> Lançar Notas
+          </button>
+        </div>
       </div>
       <div class="atividades-grid">
         <div v-for="atividade in atividades" :key="atividade.id" class="atividade-card">
@@ -48,23 +53,26 @@
       </div>
     </div>
 
-    <!-- Alunos -->
+    <!-- Alunos Matriculados - Tabela Completa -->
     <div class="alunos-section">
       <h2><i class="fas fa-users"></i> Alunos Matriculados</h2>
-      <ul>
-        <li v-for="aluno in alunosMatriculados" :key="aluno.id">
-          {{ aluno.nome }} ({{ aluno.email }})
-        </li>
-      </ul>
+      <TabelaAlunosTurma :turma-id="turmaId" />
     </div>
 
-    <!-- Modal -->
+    <!-- Modais -->
     <ModalNotas 
       v-if="exibirModalNotas"
       :alunos="alunosMatriculados"
       :atividades="atividades"
+      :turma-id="turmaId"
       @fechar="exibirModalNotas = false"
-      @salvar="salvarNotas"
+    />
+
+    <ModalAtividades 
+      v-if="exibirModalAtividades"
+      :turma-id="turmaId"
+      @fechar="exibirModalAtividades = false"
+      @atividade-cadastrada="novaAtividadeCadastrada"
     />
   </div>
 </template>
@@ -72,10 +80,12 @@
 <script>
 import axios from 'axios'
 import ModalNotas from './ModalNotas.vue'
+import ModalAtividades from './ModalAtividades.vue'
+import TabelaAlunosTurma from './TabelaAlunos.vue'
 
 export default {
   name: 'DetalhesTurma',
-  components: { ModalNotas },
+  components: { ModalNotas, ModalAtividades, TabelaAlunosTurma },
   props: {
     turmaId: {
       type: Number,
@@ -87,6 +97,7 @@ export default {
       turma: null,
       atividades: [],
       exibirModalNotas: false,
+      exibirModalAtividades: false,
       usuarios: [],
       matriculas: []
     }
@@ -95,49 +106,43 @@ export default {
     alunosMatriculados() {
       const alunos = this.usuarios.filter(u => u.tipo === 'aluno')
       const matriculasTurma = this.matriculas.filter(m => m.turma === this.turmaId)
-
-      return alunos.filter(aluno =>
-        matriculasTurma.some(m => m.aluno === aluno.id)
-      )
+      return alunos.filter(aluno => matriculasTurma.some(m => m.aluno === aluno.id))
     }
   },
-  async created() {
-    await this.carregarDados()
+  created() {
+    this.carregarDados()
   },
   methods: {
+    abrirModalNotas() {
+      this.exibirModalNotas = true
+    },
+    abrirModalAtividades() {
+      this.exibirModalAtividades = true
+    },
+    novaAtividadeCadastrada(atividade) {
+      this.atividades.push(atividade)
+    },
     async carregarDados() {
       try {
-        const [turmaRes, usuariosRes, matriculasRes] = await Promise.all([
+        const [turmaRes, usuariosRes, matriculasRes, atividadesRes] = await Promise.all([
           axios.get(`http://localhost:8000/api/turmas/${this.turmaId}/`),
           axios.get('http://localhost:8000/api/usuarios/'),
-          axios.get('http://localhost:8000/api/matriculas/')
+          axios.get('http://localhost:8000/api/matriculas/'),
+          axios.get('http://localhost:8000/api/turmas/atividades')
         ])
+
         this.turma = turmaRes.data
         this.usuarios = usuariosRes.data
         this.matriculas = matriculasRes.data
-
-        // Simulando atividades fixas
-        this.atividades = [
-          { id: 1, nome: 'Prova 1' },
-          { id: 2, nome: 'Trabalho Final' }
-        ]
+        this.atividades = atividadesRes.data.filter(a => a.turma === this.turmaId)
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
         alert('Erro ao carregar turma ou alunos.')
       }
-    },
-    abrirModalNotas() {
-      this.exibirModalNotas = true
-    },
-    salvarNotas(dados) {
-      console.log('Notas salvas:', dados)
     }
   }
 }
 </script>
-
-
-
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
@@ -342,6 +347,7 @@ export default {
   padding: 30px;
   margin: 0 20px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
 }
 
 .alunos-section h2 {

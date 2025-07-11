@@ -175,28 +175,18 @@ export default {
 }
 
 .botao-primario {
-  background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+ background: #2563eb;
   color: white;
   border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 6px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+  font-weight: 500;
 }
 
-.botao-primario:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
-}
-
-.botao-primario:active {
-  transform: translateY(0);
-}
 
 .barra-pesquisa {
   position: relative;

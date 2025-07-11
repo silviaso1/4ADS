@@ -75,7 +75,6 @@
     </div>
   </div>
 </template>
-
 <script>
 import axios from 'axios'
 
@@ -86,7 +85,7 @@ export default {
       username: '',
       password: '',
       rememberMe: false,
-      selectedUserType: 'teacher', // Default professor
+      selectedUserType: 'student', // Altere para student como padrão
       showPassword: false,
       userTypes: [
         { value: 'student', label: 'Aluno', icon: 'fas fa-user-graduate' },
@@ -113,20 +112,22 @@ export default {
       }
 
       try {
-        // 1. Autenticação - chama POST para login
-        await axios.post('http://localhost:8000/api/usuarios/login/', {
+        // 1. Autenticação
+        const response = await axios.post('http://localhost:8000/api/usuarios/login/', {
           email: this.username,
           senha: this.password,
-          tipo: this.selectedUserType === 'teacher' ? 'professor' : this.selectedUserType
+          tipo: this.selectedUserType === 'teacher' ? 'professor' : 
+                this.selectedUserType === 'student' ? 'aluno' : 
+                'admin'
         })
 
-        // 2. Busca dados do usuário em /api/usuarios/
+        // 2. Busca dados do usuário
         const usuariosResponse = await axios.get('http://localhost:8000/api/usuarios/')
-
-        // 3. Filtra o usuário logado pelo email/usuario e tipo
         const usuarioLogado = usuariosResponse.data.find(u =>
           (u.email === this.username || u.usuario === this.username) &&
-          (this.selectedUserType === 'teacher' ? u.tipo === 'professor' : u.tipo === this.selectedUserType)
+          (this.selectedUserType === 'teacher' ? u.tipo === 'professor' : 
+           this.selectedUserType === 'student' ? u.tipo === 'aluno' : 
+           u.tipo === 'admin')
         )
 
         if (!usuarioLogado) {
@@ -134,15 +135,28 @@ export default {
           return
         }
 
-        // 4. Salva id no storage
-        if (this.rememberMe) {
-          localStorage.setItem('professorId', usuarioLogado.id)
-        } else {
-          sessionStorage.setItem('professorId', usuarioLogado.id)
+        // 3. Salva dados do usuário
+        const userData = {
+          id: usuarioLogado.id,
+          nome: usuarioLogado.nome,
+          tipo: this.selectedUserType
         }
 
-        // 5. Redireciona
-        this.$router.push('/professor')
+        if (this.rememberMe) {
+          localStorage.setItem('userData', JSON.stringify(userData))
+        } else {
+          sessionStorage.setItem('userData', JSON.stringify(userData))
+        }
+
+        // 4. Redireciona
+       // No método handleLogin, modifique apenas a parte do redirecionamento:
+if (this.selectedUserType === 'student') {
+  this.$router.push('/alunos')
+} else if (this.selectedUserType === 'teacher') {
+  this.$router.push('/professor')
+} else {
+  this.$router.push('/admin')
+}
 
       } catch (error) {
         console.error('Erro no login:', error)
@@ -155,7 +169,7 @@ export default {
 
 
 <style scoped>
-/* Estilos permanecem exatamente os mesmos */
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 * {

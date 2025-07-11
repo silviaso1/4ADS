@@ -44,7 +44,7 @@
                   <i class="fas fa-trash-alt"></i>
                 </button>
                 <button class="botao-icone botao-turmas" @click="selecionarAlunoParaMatricula(aluno)">
-                  <i class="fas fa-users-class"></i>
+                  <i class="fas fa-chalkboard-teacher"></i>
                 </button>
               </div>
             </td>
@@ -66,56 +66,31 @@
     </div>
 
     <!-- Seção de Matrículas em Turmas -->
-    <div class="secao-matriculas">
+    <div class="secao-matriculas" v-if="alunoSelecionadoParaMatricula">
       <div class="cabecalho-secao">
-        <h3 class="titulo-secao">Matrículas em Turmas</h3>
-        <button 
-          class="botao-primario" 
-          @click="abrirModalMatricula(null)"
-          v-if="!alunoSelecionadoParaMatricula"
-        >
-          <i class="fas fa-plus"></i>
-          <span>Nova Matrícula</span>
-        </button>
+        <h3 class="titulo-secao">Turmas do Aluno</h3>
         <button 
           class="botao-secundario" 
           @click="cancelarSelecaoAluno"
-          v-else
         >
           <i class="fas fa-times"></i>
           <span>Cancelar seleção</span>
         </button>
       </div>
 
-      <!-- Filtros -->
-      <div class="filtros-matriculas">
-        <select v-model="filtroTurma" class="campo-selecao">
-          <option value="">Todas as turmas</option>
-          <option v-for="turma in turmas" :key="turma.id" :value="turma.id">
-            {{ turma.codigo }} - {{ turma.nome }}
-          </option>
-        </select>
-        <select v-model="filtroStatus" class="campo-selecao">
-          <option value="">Todos os status</option>
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
-          <option value="trancado">Trancado</option>
-        </select>
+      <div class="info-aluno">
+        <span class="nome-aluno">{{ alunoSelecionadoParaMatricula.nome }}</span>
+        <span class="id-aluno">Matrícula: {{ alunoSelecionadoParaMatricula.id }}</span>
       </div>
 
-      <!-- Botão especial para vincular aluno selecionado -->
-      <div class="aluno-selecionado" v-if="alunoSelecionadoParaMatricula">
-        <div class="info-aluno">
-          <span class="nome-aluno">{{ alunoSelecionadoParaMatricula.nome }}</span>
-          <span class="id-aluno">ID: {{ alunoSelecionadoParaMatricula.id }}</span>
-        </div>
-        <button 
-          class="botao-primario botao-vincular"
-          @click="abrirModalMatricula(alunoSelecionadoParaMatricula)"
-        >
-          <i class="fas fa-link"></i>
-          <span>Vincular à Turma</span>
-        </button>
+      <!-- Filtros -->
+      <div class="filtros-matriculas">
+        <select v-model="filtroPeriodo" class="campo-selecao">
+          <option value="">Todos os períodos</option>
+          <option v-for="periodo in periodosUnicos" :key="periodo" :value="periodo">
+            {{ periodo }}
+          </option>
+        </select>
       </div>
 
       <!-- Tabela de matrículas -->
@@ -123,30 +98,38 @@
         <table class="tabela">
           <thead>
             <tr>
-              <th>Aluno</th>
-              <th>Turma</th>
+              <th>Código</th>
+              <th>Nome</th>
+              <th>Período</th>
               <th>Status</th>
-              <th>Média Final</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="matricula in matriculasFiltradas" :key="matricula.id">
-              <td>{{ getNomeAluno(matricula.aluno) }}</td>
-              <td>{{ getDescricaoTurma(matricula.turma) }}</td>
+            <tr v-for="turma in turmasFiltradas" :key="turma.id">
+              <td>{{ turma.codigo }}</td>
+              <td>{{ turma.nome }}</td>
+              <td>{{ turma.periodo }}</td>
               <td>
-                <span :class="`status-badge ${matricula.status}`">
-                  {{ matricula.status }}
+                <span :class="`status-badge ${getStatusMatricula(turma.id)}`">
+                  {{ getStatusMatricula(turma.id) || 'Não matriculado' }}
                 </span>
               </td>
-              <td>{{ matricula.media_final || '-' }}</td>
               <td>
                 <div class="acoes-wrapper">
-                  <button class="botao-icone botao-editar" @click="abrirModalMatriculaEdicao(matricula)">
-                    <i class="fas fa-edit"></i>
+                  <button 
+                    class="botao-icone botao-desvincular"
+                    @click="confirmarDesvincularTurma(turma)"
+                    v-if="estaMatriculado(turma.id)"
+                  >
+                    <i class="fas fa-unlink"></i>
                   </button>
-                  <button class="botao-icone botao-excluir" @click="confirmarExclusaoMatricula(matricula)">
-                    <i class="fas fa-trash-alt"></i>
+                  <button 
+                    class="botao-icone botao-vincular"
+                    @click="vincularAlunoATurma(turma)"
+                    v-else
+                  >
+                    <i class="fas fa-link"></i>
                   </button>
                 </div>
               </td>
@@ -154,11 +137,12 @@
           </tbody>
         </table>
         
-        <div v-if="matriculasFiltradas.length === 0" class="sem-resultados">
+        <div v-if="turmasFiltradas.length === 0" class="sem-resultados">
           <div class="empty-state">
             <i class="fas fa-users-class icone-vazio"></i>
-            <h3>Nenhuma matrícula encontrada</h3>
-            <p>Não encontramos resultados para sua pesquisa.</p>
+            <h3>Nenhuma turma encontrada</h3>
+            <p v-if="filtroPeriodo">Não há turmas no período selecionado</p>
+            <p v-else>Não encontramos turmas disponíveis</p>
           </div>
         </div>
       </div>
@@ -171,95 +155,6 @@
       @fechar="fecharModalAluno"
       @salvar="salvarAluno"
     />
-
-    <!-- Modal Matrícula -->
-    <div v-if="modalMatriculaAberto" class="modal-overlay" @click.self="fecharModalMatricula">
-      <div class="modal">
-        <div class="modal__cabecalho">
-          <h3 class="modal__titulo">
-            {{ matriculaEditando ? 'Editar Matrícula' : 'Cadastrar Aluno na Turma' }}
-          </h3>
-          <button class="modal__fechar" @click="fecharModalMatricula">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="modal__corpo">
-          <!-- Aluno (automático quando selecionado da tabela) -->
-          <div class="campo-formulario" v-if="alunoSelecionadoParaMatricula">
-            <label>Aluno:</label>
-            <div class="aluno-info-modal">
-              <span class="nome">{{ alunoSelecionadoParaMatricula.nome }}</span>
-              <span class="matricula">Matrícula: {{ alunoSelecionadoParaMatricula.id }}</span>
-            </div>
-            <input type="hidden" v-model="matriculaLocal.aluno">
-          </div>
-
-          <!-- Selecione a turma -->
-          <div class="campo-formulario">
-            <label for="turmaMatricula">Turma *</label>
-            <select 
-              id="turmaMatricula" 
-              v-model="matriculaLocal.turma" 
-              class="campo-selecao"
-              required
-            >
-              <option value="">Selecione uma turma</option>
-              <option 
-                v-for="turma in turmas" 
-                :key="turma.id" 
-                :value="turma.id"
-              >
-                {{ turma.codigo }} - {{ turma.nome }} ({{ turma.periodo }})
-              </option>
-            </select>
-          </div>
-
-          <!-- Status -->
-          <div class="campo-formulario">
-            <label for="statusMatricula">Status *</label>
-            <select 
-              id="statusMatricula" 
-              v-model="matriculaLocal.status" 
-              class="campo-selecao"
-              required
-            >
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-              <option value="trancado">Trancado</option>
-            </select>
-          </div>
-
-          <!-- Média (opcional) -->
-          <div class="campo-formulario">
-            <label for="mediaMatricula">Média Final</label>
-            <input
-              id="mediaMatricula"
-              type="number"
-              v-model="matriculaLocal.media_final"
-              min="0"
-              max="10"
-              step="0.1"
-              placeholder="0.0 a 10.0"
-            >
-          </div>
-        </div>
-
-        <div class="modal__rodape">
-          <button class="botao-secundario" @click="fecharModalMatricula">
-            Cancelar
-          </button>
-          <button 
-            class="botao-primario" 
-            @click="salvarMatricula" 
-            :disabled="!matriculaLocal.turma || loadingMatricula"
-          >
-            <i class="fas fa-save"></i>
-            {{ loadingMatricula ? 'Salvando...' : 'Salvar Matrícula' }}
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -277,20 +172,10 @@ export default {
       alunos: [],
       matriculas: [],
       turmas: [],
-      filtroTurma: '',
-      filtroStatus: '',
+      filtroPeriodo: '',
       modalAlunoAberto: false,
       alunoEditando: null,
-      modalMatriculaAberto: false,
-      matriculaEditando: null,
-      alunoSelecionadoParaMatricula: null,
-      matriculaLocal: {
-        aluno: '',
-        turma: '',
-        status: 'ativo',
-        media_final: null
-      },
-      loadingMatricula: false
+      alunoSelecionadoParaMatricula: null
     }
   },
   computed: {
@@ -303,12 +188,30 @@ export default {
         )
       })
     },
-    matriculasFiltradas() {
-      return this.matriculas.filter(matricula => {
-        const turmaMatch = this.filtroTurma ? matricula.turma == this.filtroTurma : true
-        const statusMatch = this.filtroStatus ? matricula.status === this.filtroStatus : true
-        return turmaMatch && statusMatch
-      })
+    turmasFiltradas() {
+      let turmasFiltradas = this.turmas;
+      
+      // Filtrar por período se selecionado
+      if (this.filtroPeriodo) {
+        turmasFiltradas = turmasFiltradas.filter(t => t.periodo === this.filtroPeriodo);
+      }
+      
+      // Ordenar turmas: primeiro as que já estão vinculadas ao aluno
+      turmasFiltradas = [...turmasFiltradas].sort((a, b) => {
+        const aVinculada = this.estaMatriculado(a.id);
+        const bVinculada = this.estaMatriculado(b.id);
+        
+        if (aVinculada && !bVinculada) return -1;
+        if (!aVinculada && bVinculada) return 1;
+        return 0;
+      });
+      
+      return turmasFiltradas;
+    },
+    periodosUnicos() {
+      const periodos = new Set();
+      this.turmas.forEach(turma => periodos.add(turma.periodo));
+      return Array.from(periodos).sort().reverse();
     }
   },
   created() {
@@ -343,14 +246,6 @@ export default {
         console.error('Erro ao carregar turmas:', error)
         alert('Erro ao carregar turmas')
       }
-    },
-    getNomeAluno(id) {
-      const aluno = this.alunos.find(a => a.id == id)
-      return aluno ? aluno.nome : 'Aluno não encontrado'
-    },
-    getDescricaoTurma(id) {
-      const turma = this.turmas.find(t => t.id == id)
-      return turma ? `${turma.codigo} - ${turma.nome}` : 'Turma não encontrada'
     },
     abrirModalAluno(aluno) {
       this.alunoEditando = aluno
@@ -398,76 +293,58 @@ export default {
     cancelarSelecaoAluno() {
       this.alunoSelecionadoParaMatricula = null
     },
-    abrirModalMatricula(aluno = null) {
-      if (aluno) {
-        this.alunoSelecionadoParaMatricula = aluno
-        this.matriculaLocal = {
-          aluno: aluno.id,
-          turma: '',
-          status: 'ativo',
-          media_final: null
-        }
-      }
-      this.modalMatriculaAberto = true
-      this.matriculaEditando = null
+    estaMatriculado(turmaId) {
+      return this.matriculas.some(m => 
+        m.aluno === this.alunoSelecionadoParaMatricula?.id && 
+        m.turma === turmaId
+      )
     },
-    abrirModalMatriculaEdicao(matricula) {
-      this.alunoSelecionadoParaMatricula = this.alunos.find(a => a.id == matricula.aluno)
-      this.matriculaEditando = matricula
-      this.matriculaLocal = { ...matricula }
-      this.modalMatriculaAberto = true
+    getStatusMatricula(turmaId) {
+      const matricula = this.matriculas.find(m => 
+        m.aluno === this.alunoSelecionadoParaMatricula?.id && 
+        m.turma === turmaId
+      )
+      return matricula?.status
     },
-    fecharModalMatricula() {
-      this.modalMatriculaAberto = false
-      this.matriculaEditando = null
-      this.alunoSelecionadoParaMatricula = null
-    },
-    async salvarMatricula() {
-      if (!this.matriculaLocal.turma) {
-        alert('Selecione uma turma')
+    async vincularAlunoATurma(turma) {
+      if (!confirm(`Matricular ${this.alunoSelecionadoParaMatricula.nome} na turma ${turma.codigo} - ${turma.nome}?`)) {
         return
       }
-
-      this.loadingMatricula = true
-
+      
       try {
         const dados = {
-          aluno: this.matriculaLocal.aluno,
-          turma: Number(this.matriculaLocal.turma),
-          status: this.matriculaLocal.status,
-          media_final: this.matriculaLocal.media_final ? 
-            parseFloat(this.matriculaLocal.media_final) : null
+          aluno: this.alunoSelecionadoParaMatricula.id,
+          turma: turma.id,
+          status: 'ativo'
         }
-
-        if (this.matriculaEditando) {
-          await axios.put(`http://localhost:8000/api/matriculas/${this.matriculaEditando.id}/`, dados)
-        } else {
-          await axios.post('http://localhost:8000/api/matriculas/', dados)
-        }
-
+        
+        await axios.post('http://localhost:8000/api/matriculas/', dados)
         await this.carregarMatriculas()
-        this.fecharModalMatricula()
-        alert('Matrícula salva com sucesso!')
+        alert('Aluno matriculado com sucesso!')
       } catch (error) {
-        console.error('Erro ao salvar matrícula:', error.response?.data || error)
-        alert('Erro ao salvar matrícula: ' + 
-          (error.response?.data ? JSON.stringify(error.response.data) : error.message))
-      } finally {
-        this.loadingMatricula = false
+        console.error('Erro ao matricular aluno:', error)
+        alert('Erro ao matricular aluno na turma')
       }
     },
-    confirmarExclusaoMatricula(matricula) {
-      if (confirm(`Excluir matrícula de ${this.getNomeAluno(matricula.aluno)} na turma ${this.getDescricaoTurma(matricula.turma)}?`)) {
-        this.excluirMatricula(matricula.id)
+    async confirmarDesvincularTurma(turma) {
+      const matricula = this.matriculas.find(m => 
+        m.aluno === this.alunoSelecionadoParaMatricula.id && 
+        m.turma === turma.id
+      )
+      
+      if (!matricula) return
+      
+      if (!confirm(`Remover ${this.alunoSelecionadoParaMatricula.nome} da turma ${turma.codigo} - ${turma.nome}?`)) {
+        return
       }
-    },
-    async excluirMatricula(id) {
+      
       try {
-        await axios.delete(`http://localhost:8000/api/matriculas/${id}/`)
+        await axios.delete(`http://localhost:8000/api/matriculas/${matricula.id}/`)
         await this.carregarMatriculas()
+        alert('Matrícula removida com sucesso!')
       } catch (error) {
-        console.error('Erro ao excluir matrícula:', error)
-        alert('Erro ao excluir matrícula')
+        console.error('Erro ao remover matrícula:', error)
+        alert('Erro ao remover matrícula')
       }
     }
   }
@@ -575,6 +452,14 @@ export default {
   background-color: #8b5cf6;
 }
 
+.botao-vincular {
+  background-color: #10b981;
+}
+
+.botao-desvincular {
+  background-color: #f59e0b;
+}
+
 .sem-resultados {
   padding: 30px;
   text-align: center;
@@ -644,34 +529,14 @@ export default {
   color: #2d3748;
 }
 
-.filtros-matriculas {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.campo-selecao {
-  padding: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  min-width: 200px;
-  background-color: #f8fafc;
-}
-
-.aluno-selecionado {
+.info-aluno {
   background: #f8fafc;
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid #e2e8f0;
-}
-
-.info-aluno {
-  display: flex;
   flex-direction: column;
+  border: 1px solid #e2e8f0;
 }
 
 .nome-aluno {
@@ -684,10 +549,18 @@ export default {
   font-size: 14px;
 }
 
-.botao-vincular {
+.filtros-matriculas {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.campo-selecao {
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-width: 200px;
+  background-color: #f8fafc;
 }
 
 .status-badge {
@@ -713,111 +586,25 @@ export default {
   color: #92400e;
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.modal__cabecalho {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.modal__titulo {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #2d3748;
-}
-
-.modal__fechar {
-  background: none;
-  border: none;
-  font-size: 1.25rem;
-  cursor: pointer;
-  color: #64748b;
-}
-
-.modal__corpo {
-  margin-bottom: 20px;
-}
-
-.campo-formulario {
-  margin-bottom: 15px;
-}
-
-.campo-formulario label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #4a5568;
-}
-
-.campo-formulario input,
-.campo-formulario select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.campo-formulario input:focus,
-.campo-formulario select:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.aluno-info-modal {
-  background: #f8fafc;
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-}
-
-.aluno-info-modal .nome {
-  font-weight: 600;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.aluno-info-modal .matricula {
-  color: #64748b;
-  font-size: 14px;
-}
-
-.modal__rodape {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
 .fa-users-class {
   font-family: "Font Awesome 5 Free";
   font-weight: 900;
   content: "\f63d";
+}
+
+@media (max-width: 768px) {
+  .gerenciamento {
+    margin-left: 0;
+    margin-top: 70px;
+    padding: 15px;
+  }
+  
+  .filtros-matriculas {
+    flex-direction: column;
+  }
+  
+  .campo-selecao {
+    width: 100%;
+  }
 }
 </style>

@@ -1,18 +1,18 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('fechar')">
     <div class="modal-conteudo">
-      <div class="cabecalho-modal">
+      <header class="cabecalho-modal">
         <h3>Lançar Notas</h3>
-        <button class="botao-fechar" @click="$emit('fechar')">
+        <button class="botao-fechar" @click="$emit('fechar')" aria-label="Fechar modal">
           <i class="fas fa-times"></i>
         </button>
-      </div>
-      
-      <div class="corpo-modal">
+      </header>
+
+      <section class="corpo-modal">
         <div class="grupo-formulario">
           <label for="atividade">Atividade:</label>
-          <select id="atividade" v-model="dadosNotas.atividade">
-            <option value="">Selecione uma atividade</option>
+          <select id="atividade" v-model="dadosNotas.atividade" class="input-select">
+            <option disabled value="">Selecione uma atividade</option>
             <option 
               v-for="atividade in atividades" 
               :key="atividade.id" 
@@ -22,18 +22,13 @@
             </option>
           </select>
         </div>
-        
-        <div class="grupo-formulario">
-          <label for="data">Data:</label>
-          <input type="date" id="data" v-model="dadosNotas.data">
-        </div>
-        
+
         <div class="tabela-notas">
           <div class="cabecalho-notas">
             <div class="coluna-nome">Aluno</div>
             <div class="coluna-nota">Nota (0-10)</div>
           </div>
-          
+
           <div 
             v-for="aluno in alunos" 
             :key="aluno.id" 
@@ -46,58 +41,80 @@
                 min="0" 
                 max="10" 
                 step="0.1" 
-                v-model="dadosNotas.notas[aluno.id]"
-                placeholder="0.0"
+                v-model.number="dadosNotas.notas[aluno.id]"
+                placeholder="--"
               >
             </div>
           </div>
         </div>
-      </div>
-      
-      <div class="rodape-modal">
-        <button class="botao-cancelar" @click="$emit('fechar')">
-          Cancelar
-        </button>
-        <button class="botao-salvar" @click="salvarNotas">
+      </section>
+
+      <footer class="rodape-modal">
+        <button class="botao-cancelar" @click="$emit('fechar')">Cancelar</button>
+        <button class="botao-salvar" @click="salvarNotas" :disabled="!dadosNotas.atividade">
           Salvar Notas
         </button>
-      </div>
+      </footer>
     </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'ModalNotas',
   props: {
-    alunos: {
-      type: Array,
-      required: true
-    },
-    atividades: {
-      type: Array,
-      required: true
-    }
+    alunos: { type: Array, required: true },
+    atividades: { type: Array, required: true },
+    turmaId: { type: Number, required: true }
   },
   data() {
     return {
       dadosNotas: {
         atividade: '',
-        data: new Date().toISOString().split('T')[0],
         notas: {}
-      }
+      },
+      token: '52e42938087eea9afd4ec5f4a55de85da5d4d9c9'
     }
   },
   methods: {
-    salvarNotas() {
-      // Validar dados antes de emitir
+    async salvarNotas() {
       if (!this.dadosNotas.atividade) {
         alert('Selecione uma atividade');
         return;
       }
-      
-      this.$emit('salvar', this.dadosNotas);
-      this.$emit('fechar');
+
+      const promises = []
+      for (const alunoId in this.dadosNotas.notas) {
+        const nota = this.dadosNotas.notas[alunoId]
+
+        // Só envia se a nota for número válido e diferente de vazio/null
+        if (nota !== null && nota !== undefined && nota !== '' && !isNaN(nota)) {
+          const payload = {
+            nota: parseFloat(nota).toFixed(2),
+            aluno: parseInt(alunoId),
+            turma: this.turmaId,
+            atividade: this.dadosNotas.atividade
+          }
+          promises.push(
+            axios.post('http://localhost:8000/api/matriculas/notas/', payload, {
+              headers: {
+                Authorization: `Token ${this.token}`
+              }
+            })
+          )
+        }
+      }
+
+      try {
+        await Promise.all(promises)
+        alert('Notas lançadas com sucesso!')
+        this.$emit('fechar')
+      } catch (error) {
+        console.error('Erro ao lançar notas:', error)
+        alert('Erro ao lançar notas.')
+      }
     }
   }
 }
@@ -106,153 +123,198 @@ export default {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.48);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;
+  padding: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .modal-conteudo {
-  background-color: white;
-  border-radius: 10px;
+  background-color: #fff;
+  border-radius: 12px;
   width: 100%;
-  max-width: 700px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  max-width: 650px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .cabecalho-modal {
-  padding: 20px;
-  border-bottom: 1px solid #eee;
+  padding: 18px 24px;
+  background-color: #2c3e50;
+  color: #fff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.cabecalho-modal h3 {
-  font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  font-size: 1.25rem;
+  user-select: none;
 }
 
 .botao-fechar {
-  background: none;
+  background: transparent;
   border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  color: #ecf0f1;
+  font-size: 1.2rem;
   cursor: pointer;
-  color: #95a5a6;
+  transition: color 0.25s ease;
 }
 
 .botao-fechar:hover {
-  background-color: #f0f0f0;
+  color: #e74c3c;
 }
 
 .corpo-modal {
-  padding: 20px;
+  padding: 24px;
+  overflow-y: auto;
+  flex-grow: 1;
 }
 
 .grupo-formulario {
-  margin-bottom: 20px;
+  margin-bottom: 28px;
 }
 
 .grupo-formulario label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #34495e;
   display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
-  font-weight: 500;
+  margin-bottom: 10px;
 }
 
-.grupo-formulario select,
-.grupo-formulario input[type="date"] {
+.input-select {
   width: 100%;
-  padding: 10px 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1.8px solid #bdc3c7;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.input-select:focus {
+  outline: none;
+  border-color: #2980b9;
+  box-shadow: 0 0 6px #2980b9aa;
 }
 
 .tabela-notas {
-  margin-top: 20px;
-  border: 1px solid #eee;
-  border-radius: 6px;
+  border: 1.5px solid #dfe6e9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 8px #f1f2f6;
 }
 
 .cabecalho-notas {
   display: flex;
-  background-color: #f8f9fa;
-  font-weight: 500;
-  font-size: 13px;
+  background-color: #ecf0f1;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #2d3436;
+  user-select: none;
 }
 
-.cabecalho-notas div {
-  padding: 10px 15px;
+.cabecalho-notas > div {
+  padding: 14px 20px;
 }
 
 .coluna-nome {
-  flex: 2;
+  flex: 3;
 }
 
 .coluna-nota {
-  flex: 1;
+  flex: 1.5;
+  text-align: center;
 }
 
 .linha-notas {
   display: flex;
-  border-bottom: 1px solid #eee;
-  background-color: white;
+  border-top: 1px solid #dcdde1;
+  background-color: #fff;
+  transition: background-color 0.2s ease;
 }
 
-.linha-notas:last-child {
-  border-bottom: none;
+.linha-notas:hover {
+  background-color: #f5f6fa;
 }
 
-.linha-notas div {
-  padding: 12px 15px;
+.linha-notas > div {
+  padding: 14px 20px;
   display: flex;
   align-items: center;
 }
 
 .linha-notas input {
-  width: 80px;
+  width: 75px;
+  margin: 0 auto;
   padding: 8px 10px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  font-size: 1rem;
+  border: 1.5px solid #bdc3c7;
+  border-radius: 6px;
+  text-align: center;
+  transition: border-color 0.3s ease;
+}
+
+.linha-notas input::placeholder {
+  color: #95a5a6;
+}
+
+.linha-notas input:focus {
+  outline: none;
+  border-color: #2980b9;
+  box-shadow: 0 0 6px #2980b9aa;
 }
 
 .rodape-modal {
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
+  padding: 16px 24px;
+  background-color: #f1f2f6;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
+  border-top: 1.5px solid #dcdde1;
+}
+
+.botao-cancelar, .botao-salvar {
+  padding: 10px 28px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  user-select: none;
+  transition: background-color 0.3s ease;
 }
 
 .botao-cancelar {
-  padding: 10px 20px;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  cursor: pointer;
+  background-color: #dfe6e9;
+  color: #2d3436;
+}
+
+.botao-cancelar:hover {
+  background-color: #b2bec3;
 }
 
 .botao-salvar {
-  padding: 10px 20px;
-  background-color: #3498db;
-  border: 1px solid #3498db;
+  background-color: #0984e3;
   color: white;
-  border-radius: 6px;
-  cursor: pointer;
+  border: 1.5px solid #0984e3;
 }
 
-.botao-salvar:hover {
-  background-color: #2980b9;
+.botao-salvar:disabled {
+  background-color: #74b9ff88;
+  border-color: #74b9ff88;
+  cursor: not-allowed;
+  color: #dfe6e9;
+}
+
+.botao-salvar:hover:not(:disabled) {
+  background-color: #0652dd;
+  border-color: #0652dd;
 }
 </style>
