@@ -1,88 +1,87 @@
 <template>
-  <header class="cabecalho-professor">
-    <div class="conteiner-cabecalho">
-     
-      
-      <div class="menu-usuario">
-        <div class="info-usuario">
-          <span class="nome-usuario">Prof. Carlos Silva</span>
-          <span class="email-usuario">carlos.silva@escola.com</span>
-        </div>
-        <div class="avatar-usuario">
-
-        </div>
-        <button class="botao-sair" @click="$emit('sair')">
-          <i class="fas fa-sign-out-alt"></i>
-        </button>
+  <header class="cabecalho-portal">
+  
+    
+    <div class="right-section">
+      <div class="logo-simbolo">
+        <i class="fas fa-user-shield"></i>
       </div>
+      <button class="logout-btn" @click="irParaInicio">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
     </div>
   </header>
 </template>
 
 <script>
 export default {
-  name: 'CabecalhoProfessor',
-  emits: ['sair']
+  name: 'CabecalhoPortal',
+  props: {
+    menuAberto: Boolean
+  },
+  methods: {
+    irParaInicio() {
+      window.location.href = 'http://localhost:5173';
+    }
+  }
 }
 </script>
 
 <style scoped>
-.cabecalho-professor {
+.cabecalho-portal {
   background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-  color: white;
-  padding: 0 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   height: 70px;
-}
-
-.conteiner-cabecalho {
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 15px 0;
+  justify-content: right;
+  padding: 0 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  color: white;
 }
 
-.logo-titulo h1 {
+
+.right-section {
+  display: flex;
+  align-items: center;
+  justify-content: right;
+  gap: 16px;
+}
+
+.logo-simbolo {
   font-size: 20px;
-  font-weight: 600;
-}
-
-.menu-usuario {
+  color: white;
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
 }
 
-.info-usuario {
-  display: flex;
-  flex-direction: column;
-  text-align: right;
-}
-
-.nome-usuario {
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.email-usuario {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-.botao-sair {
+.logout-btn {
   background: none;
   border: none;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 8px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
 }
 
-.botao-sair:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+@media (max-width: 992px) {
+  .cabecalho-portal {
+    padding: 0 15px;
+  }
 }
 </style>

@@ -1,12 +1,7 @@
 <template>
   <div class="portal-aluno">
-    <div class="cabecalho-portal">
-      <h1>Portal do Aluno</h1>
-      <button @click="logout" class="btn-logout">
-        <i class="fas fa-sign-out-alt"></i> Sair
-      </button>
-    </div>
     
+    <CabecalhoPortal @sair="logout" />
     <div class="container-portal">
       <main class="conteudo-portal">
         <DisciplinaModule />
@@ -16,12 +11,14 @@
 </template>
 
 <script>
+import CabecalhoPortal from '../components/Aluno/CabecalhoPortal.vue';
 import DisciplinaModule from '../components/Aluno/Disciplinas.vue';
 
 export default {
   name: 'PortalAluno',
   components: {
-    DisciplinaModule
+    DisciplinaModule,
+    CabecalhoPortal
   },
   methods: {
     logout() {
@@ -40,19 +37,6 @@ export default {
   min-height: 100vh;
 }
 
-.cabecalho-portal {
-  background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
-  color: white;
-  padding: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.cabecalho-portal h1 {
-  margin: 0;
-  font-size: 1.5rem;
-}
 
 .btn-logout {
   background: rgba(255, 255, 255, 0.2);

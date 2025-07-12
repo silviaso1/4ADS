@@ -6,7 +6,6 @@
         <span class="header-icon">
           <i class="fas fa-book-open"></i>
         </span>
-        <h2 class="module-title">Minhas Disciplinas</h2>
       </div>
       <div v-if="disciplinas.length > 0" class="module-counter">
         {{ disciplinas.length }} {{ disciplinas.length === 1 ? 'disciplina' : 'disciplinas' }}
@@ -163,7 +162,8 @@ export default {
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
   padding: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  margin-top: 2rem;
 }
 
 .module-header {
